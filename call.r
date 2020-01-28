@@ -4,83 +4,73 @@ library(fields)
 library(rstan)
 options(mc.cores = parallel::detectCores())
 
+############################################################################
+## DATA ####################################################################
+############################################################################
 setwd('d:/dropbox/working/bayesian-matrixmodel/')
 
-nc <- nc_open('data/SeaFlow_SizeDist_regrid-15-5.nc')
-
-PAR         <- ncvar_get(nc,'PAR')
-w_obs       <- ncvar_get(nc,'w_obs')
-m           <- ncvar_get(nc,'m')
-delta_v_inv <- ncvar_get(nc,'delta_v_inv')
-v_min       <- ncvar_get(nc,'v_min')
-time        <- ncvar_get(nc,'time')
-
-delta_v <- 1/delta_v_inv
-v       <- v_min*2^(0:14*delta_v)
-
+ndays            <- 4.0
+limit_to_numdays <- 4.0
+stride_t_obs     <- 10
 data             <- list()
-data$w_obs       <- ncvar_get(nc,'w_obs')
-data$PAR         <- ncvar_get(nc,'PAR')
-data$m           <- ncvar_get(nc,'m')
-data$delta_v_inv <- ncvar_get(nc,'delta_v_inv')
-data$v_min       <- ncvar_get(nc,'v_min')
-data$time        <- ncvar_get(nc,'time')
+data$dt          <- 10
 
-data$dt     <- 20
-data$nt     <- 2*1440/data$dt
-data$nt_obs <- length(data$time)
-
-t                 <- (0:data$nt)*data$dt
-data$E            <- approx(data$time,data$PAR,xout=t)$y
-data$return_prior <- 0
-data$obs          <- t(data$w_obs)
-data$t_obs        <- data$time
-data$w_ini        <- data$w_obs[1,]
-
-limit_to_numdays <- 2.0
-stride_t_obs     <- 20
-
-ind_obs    <- data$t_obs > 3
-data$t_obs <- data$t_obs[ind_obs]
-data$obs   <- data$obs[,ind_obs]
-
-if(limit_to_numdays > 0){
-    thresh     <- limit_to_numdays*1440
-    ind_obs    <- data$t_obs < thresh
-    data$t_obs <- data$t_obs[ind_obs]
-    data$obs   <- data$obs[,ind_obs]
-
-    data$nt    <- thresh/data$dt
-    data$E     <- data$E[t < thresh]
-}
-
-if(stride_t_obs > 0){
-    data$t_obs <- data$t_obs[seq(1,length(data$t_obs),stride_t_obs)]
-    data$obs   <- data$obs[,seq(1,ncol(data$obs),stride_t_obs)]
-}
-
-data$nt_obs <- dim(data$obs)[2]
+source('data_processing.r')
 
 ##############################################################################
 ## STAN MODELING #############################################################
 ##############################################################################
 
-data$i_test = c(rep(0,35),rep(1,11))
+data$i_test = c(rep(0,round(dim(data$obs)[2]*(2/3))),rep(1,round(dim(data$obs)[2]*(1/3))))
 
-mod_free <- stan_model('d:/dropbox/working/bayesian-matrixmodel/matrixmodel_freedelta_CV.stan')
-mod_orig <- stan_model('d:/dropbox/working/bayesian-matrixmodel/matrixmodel_orig_CV.stan')
-mod_sig  <- stan_model('d:/dropbox/working/bayesian-matrixmodel/matrixmodel_freedelta_CV.stan')
+mod_free    <- stan_model('d:/dropbox/working/bayesian-matrixmodel/matrixmodel_freedelta_CV.stan')
+mod_orig    <- stan_model('d:/dropbox/working/bayesian-matrixmodel/matrixmodel_orig_CV.stan')
+mod_sig     <- stan_model('d:/dropbox/working/bayesian-matrixmodel/matrixmodel_sigmoidaldelta_CV.stan')
+mod_free_np <- stan_model('d:/dropbox/working/bayesian-matrixmodel/matrixmodel_freedelta_no_prior_CV.stan')
 
-mcmc_free <- sampling(mod_free, data=data, open_progress=TRUE,chains=4)
-post_free <- extract(mcmc_free)
+mcmc_free    <- sampling(mod_free,    data=data, open_progress=TRUE,chains=4)
+mcmc_orig    <- sampling(mod_orig,    data=data, open_progress=TRUE,chains=4)
+mcmc_sig     <- sampling(mod_sig,     data=data, open_progress=TRUE,chains=4)
+mcmc_free_np <- sampling(mod_free_np, data=data, open_progress=TRUE,chains=4)
 
-mcmc_orig <- sampling(mod_orig, data=data, open_progress=TRUE,chains=4)
-post_orig <- extract(mcmc_orig)
+post_free    <- extract(mcmc_free)
+post_orig    <- extract(mcmc_orig)
+post_sig     <- extract(mcmc_sig)
+post_free_np <- extract(mcmc_free_np) 
 
-mcmc_sig <- sampling(mod_sig, data=data, open_progress=TRUE,chains=4)
-post_sig <- extract(mcmc_sig)
+free_mean    <- apply(post_free$mod_obspos,c(2,3),mean)
+orig_mean    <- apply(post_orig$mod_obspos,c(2,3),mean)
+sig_mean     <- apply(post_sig$mod_obspos, c(2,3),mean)
+free_np_mean <- apply(post_free_np$mod_obspos,c(2,3),mean) 
 
+free_resid    <- free_mean - data$obs
+orig_resid    <- orig_mean - data$obs
+sig_resid     <- sig_mean - data$obs
+free_np_resid <- free_np_mean - data$obs
 
+xin <- seq(1,data$nt_obs*30,length.out=175)
+
+par(mfrow=c(2,2),mar=c(3,4,2,3),oma=c(2,2,2,2))
+image.plot(x=xin,y=v,z=t(free_resid),xlab='',ylab=''); box(); mtext('free with prior')
+image.plot(x=xin,y=v,z=t(orig_resid),xlab='',ylab=''); box(); mtext('allometric')
+image.plot(x=xin,y=v,z=t(sig_resid),xlab='',ylab=''); box(); mtext('sigmoidal')
+image.plot(x=xin,y=v,t(free_np_resid),xlab='',ylab=''); box(); mtext('free no prior')
+	mtext(side=1,outer=TRUE,'Time (minutes)')
+	mtext(side=2,outer=TRUE,expression('Size ('*mu*'m)'))
+	
+par(mfrow=c(5,3),mar=c(2,2,1,2))
+for(i in 15:1){
+	acf(sig_res[i,],lag.max=157,main='',ylim=c(-1,1),ci=0,xaxt='n')
+	axis(side=1,at=c(0,50,100,150),labels=c(0,50,100,150)*30)
+	mtext(round(v[i],3),cex=0.7)
+}
+
+par(mfrow=c(5,3),mar=c(2,2,2,2))
+for(i in 15:1) {
+	plot(data$obs[i,],ylim=c(0,0.25),cex=0.3,pch=2)
+	lines(sig_mean[i,])
+	mtext(round(v[i],3),cex=0.7)
+}
 
 
 
