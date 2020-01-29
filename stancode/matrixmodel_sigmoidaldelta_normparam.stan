@@ -124,12 +124,9 @@ model {
     real diff;
     
     // priors
-    //delta_max ~ uniform(0.0,1440.0/dt);
     delta_max ~ normal(3.5, 2.0);
     sig_offset ~ uniform(v[1],v[m]);
-    //sig_offset ~ uniform(0.0135,0.095); // temporary solution, the above does not work
     sig_steepness ~ lognormal(5.0,1.0);
-    //sig_steepness ~ normal(600.0,100.0);
     gamma_max ~ uniform(0.0,1440.0/dt);
     E_star ~ normal(3000.0,10.0);
     sigma ~ exponential(1000.0);
