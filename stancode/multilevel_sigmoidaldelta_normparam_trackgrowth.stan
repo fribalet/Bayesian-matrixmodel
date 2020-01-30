@@ -21,6 +21,7 @@ transformed data {
     real<lower=0> v[m];     // vector of (minimum) sizes for each size class
     int<lower=0> t[nt];     // vector of times in minutes since start 
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
+    int ndays = 0;
 
     j = 1 + delta_v_inv; 
     delta_v = 1.0/delta_v_inv;
@@ -43,14 +44,27 @@ transformed data {
             }
         }
     }
+    while (ndays*1440 < t[nt]){
+        ndays += 1;
+    }
 }
 parameters {
-    real<lower=0> delta_max; 
-    real<lower=0> gamma_max;
-    real<lower=v[1],upper=v[m]> sig_offset;
-    real<lower=0> sig_steepness;
-    real<lower=0, upper=5000> E_star; 
-    real<lower=1e-10> sigma; 
+    real<lower=0> delta_max_mu;
+    real<lower=0> delta_max_sigma;
+    real<lower=0> delta_max[ndays]; 
+    real<lower=0> gamma_max_mu;
+    real<lower=0> gamma_max_sigma;
+    real<lower=0> gamma_max[ndays];
+    real<lower=v[1],upper=v[m]> sig_offset_mu;
+    real<lower=0> sig_offset_sigma;
+    real<lower=v[1],upper=v[m]> sig_offset[ndays];
+    real<lower=0> sig_steepness_mu;
+    real<lower=0> sig_steepness_sigma;
+    real<lower=0> sig_steepness[ndays];
+    real<lower=0, upper=5000> E_star_mu; 
+    real<lower=0> E_star_sigma; 
+    real<lower=0, upper=5000> E_star[ndays]; 
+    real<lower=1e-10> sigma[ndays]; 
 }
 transformed parameters {
     matrix[m,nt_obs] mod_obspos;
@@ -63,6 +77,7 @@ transformed parameters {
         real a;
         real tmp;
         int ito = 1;
+        int iday = 1;
         
         w_curr = w_ini;
 
@@ -76,14 +91,18 @@ transformed parameters {
                     break;
                 }
             }
+            // increment iday
+            if (t[it] > iday*1440){
+                iday += 1;
+            }
             // compute gamma
-            gamma = gamma_max * dt_norm * (1.0 - exp(-E[it]/E_star));
+            gamma = gamma_max[iday] * dt_norm * (1.0 - exp(-E[it]/E_star[iday]));
 
             w_next = rep_vector(0.0, m);
             for (i in 1:m){ // size-class loop
                 // compute delta_i
                 if (i >= j){
-                    delta_i = delta_max/(1.0+exp(-sig_steepness*(v[i]-sig_offset))) * dt_days;
+                    delta_i = delta_max[iday]/(1.0+exp(-sig_steepness[iday]*(v[i]-sig_offset[iday]))) * dt_days;
                 }
                 
                 // fill subdiagonal (growth)
@@ -125,24 +144,44 @@ transformed parameters {
 model {
     real diff;
     real popsum;
+    int iday;
     
     // priors
-    delta_max ~ normal(3.5, 2.0);
-    sig_offset ~ uniform(v[1],v[m]);
-    sig_steepness ~ lognormal(5.0,1.0);
-    gamma_max ~ uniform(0.0,1440.0/dt);
-    E_star ~ normal(3000.0,10.0);
+    delta_max_mu ~ normal(3.5, 2.0);
+    delta_max_sigma ~ exponential(1.0);
+    delta_max ~ normal(delta_max_mu, delta_max_sigma);
+
+    sig_offset_mu ~ uniform(v[1],v[m]);
+    sig_offset_sigma ~ exponential(1.0);
+    sig_offset ~ normal(sig_offset_mu, sig_offset_sigma);
+    
+    sig_steepness_mu ~ lognormal(5.0,1.0);
+    sig_steepness_sigma ~ exponential(1.0);
+    sig_steepness ~ normal(sig_steepness_mu, sig_steepness_sigma);
+
+    gamma_max_mu ~ uniform(0.0,1440.0/dt);
+    gamma_max_sigma ~ exponential(1.0);
+    gamma_max ~ normal(gamma_max_mu, gamma_max_sigma);
+
+    E_star_mu ~ normal(3000.0,10.0);
+    E_star_sigma ~ exponential(0.1);
+    E_star ~ normal(E_star_mu, E_star_sigma);
+
     sigma ~ exponential(1000.0);
 
     // fitting observations
     for (it in 1:nt_obs){
         diff = 0.0;
+        iday = 1;
+        while (iday*1440 < t_obs[it]){
+            iday += 1;
+        }
         // normalization is now happening here but could also be moved to transformed parameters block
         popsum = sum(mod_obspos[,it]);
         for (iv in 1:m){
             diff += fabs((mod_obspos[iv,it]/popsum) - obs[iv,it]);
         }
-        diff = diff/sigma;
+        diff = diff/sigma[iday];
         diff ~ normal(0.0, 1.0) T[0,];
     }
 }
