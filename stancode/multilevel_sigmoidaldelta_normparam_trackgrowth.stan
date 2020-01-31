@@ -64,7 +64,7 @@ parameters {
     real<lower=0, upper=5000> E_star_mu; 
     real<lower=0> E_star_sigma; 
     real<lower=0, upper=5000> E_star[ndays]; 
-    real<lower=1e-10> sigma[ndays]; 
+    real<lower=1e-10> sigma; 
 }
 transformed parameters {
     matrix[m,nt_obs] mod_obspos;
@@ -144,7 +144,6 @@ transformed parameters {
 model {
     real diff;
     real popsum;
-    int iday;
     
     // priors
     delta_max_mu ~ normal(3.5, 2.0);
@@ -172,16 +171,12 @@ model {
     // fitting observations
     for (it in 1:nt_obs){
         diff = 0.0;
-        iday = 1;
-        while (iday*1440 < t_obs[it]){
-            iday += 1;
-        }
         // normalization is now happening here but could also be moved to transformed parameters block
         popsum = sum(mod_obspos[,it]);
         for (iv in 1:m){
             diff += fabs((mod_obspos[iv,it]/popsum) - obs[iv,it]);
         }
-        diff = diff/sigma[iday];
+        diff = diff/sigma;
         diff ~ normal(0.0, 1.0) T[0,];
     }
 }
