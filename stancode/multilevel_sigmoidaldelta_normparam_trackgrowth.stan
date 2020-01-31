@@ -51,23 +51,31 @@ transformed data {
 parameters {
     real<lower=0> delta_max_mu;
     real<lower=0> delta_max_sigma;
-    real<lower=0> delta_max[ndays]; 
+    vector[ndays] delta_max_raw; 
     real<lower=0> gamma_max_mu;
     real<lower=0> gamma_max_sigma;
-    real<lower=0> gamma_max[ndays];
+    vector[ndays] gamma_max_raw;
     real<lower=v[1],upper=v[m]> sig_offset_mu;
     real<lower=0> sig_offset_sigma;
-    real<lower=v[1],upper=v[m]> sig_offset[ndays];
+    vector[ndays] sig_offset_raw;
     real<lower=0> sig_steepness_mu;
     real<lower=0> sig_steepness_sigma;
-    real<lower=0> sig_steepness[ndays];
-    real<lower=0, upper=5000> E_star_mu; 
+    vector[ndays] sig_steepness_raw;
+    real<lower=0> E_star_mu; 
     real<lower=0> E_star_sigma; 
-    real<lower=0, upper=5000> E_star[ndays]; 
+    vector[ndays] E_star_raw; 
     real<lower=1e-10> sigma; 
 }
 transformed parameters {
     matrix[m,nt_obs] mod_obspos;
+   
+    // it appears like bounds are unnecessary here due to the truncation imposed in the model block
+    // in fact, imposing bounds here will lead to error messages
+    vector[ndays] delta_max = delta_max_mu + delta_max_sigma * delta_max_raw;
+    vector[ndays] gamma_max = gamma_max_mu + gamma_max_sigma * gamma_max_raw;
+    vector[ndays] sig_offset = sig_offset_mu + sig_offset_sigma * sig_offset_raw;
+    vector[ndays] sig_steepness = sig_steepness_mu + sig_steepness_sigma * sig_steepness_raw;
+    vector[ndays] E_star = E_star_mu + E_star_sigma * E_star_raw; 
     {
         // helper variables
         vector[m] w_curr; 
@@ -144,29 +152,35 @@ transformed parameters {
 model {
     real diff;
     real popsum;
+    int iday;
     
     // priors
     delta_max_mu ~ normal(3.5, 2.0);
     delta_max_sigma ~ exponential(1.0);
-    delta_max ~ normal(delta_max_mu, delta_max_sigma);
 
     sig_offset_mu ~ uniform(v[1],v[m]);
     sig_offset_sigma ~ exponential(1.0);
-    sig_offset ~ normal(sig_offset_mu, sig_offset_sigma);
     
     sig_steepness_mu ~ lognormal(5.0,1.0);
     sig_steepness_sigma ~ exponential(1.0);
-    sig_steepness ~ normal(sig_steepness_mu, sig_steepness_sigma);
 
     gamma_max_mu ~ uniform(0.0,1440.0/dt);
     gamma_max_sigma ~ exponential(1.0);
-    gamma_max ~ normal(gamma_max_mu, gamma_max_sigma);
 
     E_star_mu ~ normal(3000.0,10.0);
     E_star_sigma ~ exponential(0.1);
-    E_star ~ normal(E_star_mu, E_star_sigma);
 
     sigma ~ exponential(1000.0);
+    
+    // Outcomes in truncated distributions must be univariate, hence the loop.
+    for (i in 1:ndays){
+        delta_max_raw[i] ~ normal(0.0,1.0) T[-delta_max_mu/delta_max_sigma,];
+        gamma_max_raw[i] ~ normal(0.0,1.0) T[-gamma_max_mu/gamma_max_sigma,];
+        //sig_offset_raw[i] ~ normal(0.0,1.0) T[(v[1]-sig_offset_mu)/sig_offset_sigma,(v[m]-sig_offset_mu)/sig_offset_sigma];
+        sig_offset_raw[i] ~ normal(0.0,1.0);
+        sig_steepness_raw[i] ~ normal(0.0,1.0) T[-sig_steepness_mu/sig_steepness_sigma,];
+        E_star_raw[i] ~ normal(0.0,1.0) T[-E_star_mu/E_star_sigma,];
+    }
 
     // fitting observations
     for (it in 1:nt_obs){
