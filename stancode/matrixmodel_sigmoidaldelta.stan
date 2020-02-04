@@ -126,7 +126,7 @@ model {
     sig_offset ~ uniform(v[1],v[m]);
     sig_steepness ~ lognormal(5.0,1.0);
     gamma_max ~ uniform(0.0,1440.0/dt);
-    E_star ~ normal(3000.0,10.0);
+    E_star ~ normal(1000.0,1000.0);
     sigma ~ exponential(1000.0);
 
     // fitting observations
