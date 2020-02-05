@@ -61,7 +61,7 @@ parameters {
     real<lower=0> sig_steepness_mu;
     real<lower=0> sig_steepness_sigma;
     vector[ndays] sig_steepness_raw;
-    real<lower=0> E_star_mu; 
+    real<lower=5> E_star_mu; // introducing a lower bound of 5 here
     real<lower=0> E_star_sigma; 
     vector[ndays] E_star_raw; 
     real<lower=1e-10> sigma; 
@@ -167,7 +167,7 @@ model {
     gamma_max_mu ~ uniform(0.0,1440.0/dt);
     gamma_max_sigma ~ exponential(1.0);
 
-    E_star_mu ~ normal(1000.0,1000.0);
+    E_star_mu ~ normal(700.0,100.0);
     E_star_sigma ~ exponential(0.1);
 
     sigma ~ exponential(1000.0);
@@ -179,7 +179,7 @@ model {
         //sig_offset_raw[i] ~ normal(0.0,1.0) T[(v[1]-sig_offset_mu)/sig_offset_sigma,(v[m]-sig_offset_mu)/sig_offset_sigma];
         sig_offset_raw[i] ~ normal(0.0,1.0);
         sig_steepness_raw[i] ~ normal(0.0,1.0) T[-sig_steepness_mu/sig_steepness_sigma,];
-        E_star_raw[i] ~ normal(0.0,1.0) T[-E_star_mu/E_star_sigma,];
+        E_star_raw[i] ~ normal(0.0,1.0) T[(5.0-E_star_mu)/E_star_sigma,];
     }
 
     // fitting observations
