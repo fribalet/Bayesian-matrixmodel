@@ -167,7 +167,7 @@ model {
     gamma_max_mu ~ uniform(0.0,1440.0/dt);
     gamma_max_sigma ~ exponential(1.0);
 
-    E_star_mu ~ normal(700.0,100.0);
+    E_star_mu ~ normal(700.0,300.0);
     E_star_sigma ~ exponential(0.1);
 
     sigma ~ exponential(1000.0);

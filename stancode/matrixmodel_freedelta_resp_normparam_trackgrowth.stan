@@ -45,10 +45,10 @@ transformed data {
     }
 }
 parameters {
-    real<lower=0.5> delta_mu; 
+    real<lower=0> delta_mu; 
     real<lower=0> delta_sigma; 
     real<lower=0> delta_max[m-j+1]; 
-    real<lower=0> gamma_max;
+    real<lower=0.5> gamma_max; // enforcing non-zero growth
     real<lower=0> respiration; 
     real<lower=0, upper=5000> E_star; 
     real<lower=1e-10> sigma; 
@@ -100,7 +100,11 @@ transformed parameters {
                     w_next[i-1] += a * w_curr[i];
                 }
                 // fill subdiagonal (growth)
-                if (i < j){
+                if (i == 1){
+                    //A[i+1,i] = gamma;
+                    a = gamma;
+                    w_next[i+1] += a * w_curr[i];
+                } else if (i < j){
                     //A[i+1,i] = gamma * (1.0-rho);
                     a = gamma * (1.0-rho);
                     w_next[i+1] += a * w_curr[i];
@@ -134,6 +138,12 @@ transformed parameters {
                     w_next[i] += a * w_curr[i];
                 }
             }
+            /*
+            // use this check to test model consistency when division is set to "a = delta_i;" (no doubling)
+            if (fabs(sum(w_next)-1.0)>1e-12){
+                reject("it = ",it,", sum(w_next) = ", sum(w_next), ", rho =", rho)
+            }
+            */
             // do not normalize population here
             w_curr = w_next;
         }
