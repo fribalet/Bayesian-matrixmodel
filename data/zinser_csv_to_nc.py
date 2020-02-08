@@ -55,6 +55,8 @@ if len(sys.argv) > 1:
     m = int(sys.argv[1])
     if len(sys.argv) > 2:
         delta_v_inv = int(sys.argv[2])
+        if len(sys.argv) > 3:
+            v_min = float(sys.argv[3])
 
 delta_v = 1.0/delta_v_inv
 v = v_min * 2**(np.arange(m+1)*delta_v) # to get m intervals, we need m+1 edges
@@ -74,7 +76,7 @@ print(data['data'].shape)
 
 def regrid(v0, w0, v1, permit_smallgrid=False):
     # assert that old grid is contained in new one
-    assert v1[0] <= v0[0]
+    #assert v1[0] <= v0[0]
     if not permit_smallgrid:
         assert v1[-1] >= v0[-1]
     # check sizes
@@ -90,7 +92,7 @@ def regrid(v0, w0, v1, permit_smallgrid=False):
             if v0[i0-1] >= v1[i1-1]:
                 w1[i1-1,:] += w0[i0-1,:]
             else:
-                raise RuntimeError('This should not happen.')
+                pass
         elif i1+1 == v1.size:
             # can only happen for permit_smallgrid
             a = (v1[i1]-v0[i0-1])/(v0[i0]-v0[i0-1])
@@ -107,7 +109,7 @@ def regrid(v0, w0, v1, permit_smallgrid=False):
         else:
             raise NotImplementedError('Case not yet covered')
     
-    if v1[-1] >= v0[-1]:
+    if v1[-1] >= v0[-1] and v1[0] <= v0[0]:
         assert np.all(np.abs(np.sum(w0,axis=0)-np.sum(w1,axis=0))<1e-9)
     else:
         print('maximum loss of data due to reduction in grid coverage: {}'.format(np.max(np.abs(np.sum(w0,axis=0)-np.sum(w1,axis=0)))))
@@ -131,7 +133,7 @@ if create_plots:
     ax = axs[2]
     pc = ax.pcolormesh(data['t_min'], v, w/np.sum(w,axis=0), rasterized=True)
     add_colorbar(ax, label='size class proportion', norm=pc.norm, cmap=pc.cmap)
-    ax.set(xlabel='minutes since start', ylabel='size ($\mu$m$^3$)', ylim=axs[1].get_ylim())
+    ax.set(xlabel='minutes since start', ylabel='size ($\mu$m$^3$)')
     ax.text(0.01, 0.98, 'm = {}, delta_v_inv = {}'.format(m, delta_v_inv), ha='left', va='top', transform=ax.transAxes, size=16)
     
     fig.patch.set_alpha(0.0)
