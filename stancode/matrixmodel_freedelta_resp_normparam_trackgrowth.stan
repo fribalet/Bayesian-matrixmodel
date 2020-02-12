@@ -158,7 +158,6 @@ model {
     delta_sigma ~ exponential(1.0);
     delta_max ~ normal(delta_mu, delta_sigma); // T[0.0,1440.0/dt];
     gamma_max ~ uniform(0.0,1440.0/dt);
-    //respiration ~ uniform(0.0,10.0);
     respiration ~ uniform(0.0,10.0);
     E_star ~ normal(1000.0,1000.0);
     sigma ~ exponential(1000.0);
