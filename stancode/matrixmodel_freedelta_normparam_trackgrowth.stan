@@ -45,7 +45,7 @@ transformed data {
     }
 }
 parameters {
-    real<lower=0.5> delta_mu; 
+    real<lower=0> delta_mu; 
     real<lower=0> delta_sigma; 
     real<lower=0> delta_max[m-j+1]; 
     real<lower=0> gamma_max;
