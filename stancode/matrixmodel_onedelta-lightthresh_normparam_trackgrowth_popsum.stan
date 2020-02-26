@@ -47,7 +47,7 @@ transformed data {
 }
 parameters {
     real<lower=0.5> delta_max; 
-    real<lower=0> delta_lighthresh;
+    real<lower=0> delta_lightthresh;
     real<lower=0> gamma_max;
     real<lower=0, upper=5000> E_star; 
     real<lower=1e-10> sigma; 
@@ -84,7 +84,7 @@ transformed parameters {
             for (i in 1:m){ // size-class loop
                 // compute delta_i
                 if (i >= j){
-                    if (E[it] < delta_lighthresh){
+                    if (E[it] < delta_lightthresh){
                         delta_i = delta_max * dt_days;
                     } else {
                         delta_i = 0.0;
@@ -133,7 +133,7 @@ model {
     
     // priors
     delta_max ~ normal(3.0, 1.0);
-    delta_lighthresh ~ normal(1000.0,1000.0);
+    delta_lightthresh ~ normal(1000.0,1000.0);
     gamma_max ~ uniform(0.0,1440.0/dt);
     E_star ~ normal(1000.0,1000.0);
     sigma ~ exponential(1000.0);

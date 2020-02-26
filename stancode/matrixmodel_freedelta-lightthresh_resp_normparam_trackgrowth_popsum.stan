@@ -11,6 +11,7 @@ data {
     vector<lower=0>[m] w_ini;  // initial conditions 
     // observations
     real<lower=0,upper=nt*dt>  t_obs[nt_obs]; // the time of each observation
+    real<lower=0.0> obspopsum[nt_obs];
     real<lower=0> obs[m,nt_obs]; // observations
 }
 transformed data {
@@ -45,11 +46,15 @@ transformed data {
     }
 }
 parameters {
-    real<lower=0.5> delta_max; 
+    real<lower=0> delta_mu; 
+    real<lower=0> delta_sigma; 
+    real<lower=0> delta_max[m-j+1]; 
     real<lower=0> delta_lightthresh;
-    real<lower=0> gamma_max;
+    real<lower=0.5> gamma_max; // enforcing non-zero growth
+    real<lower=0> respiration; 
     real<lower=0, upper=5000> E_star; 
     real<lower=1e-10> sigma; 
+    real<lower=1e-10> sigma_obssum; 
 }
 transformed parameters {
     matrix[m,nt_obs] mod_obspos;
@@ -60,6 +65,7 @@ transformed parameters {
         real delta_i = 0.0;
         real gamma;
         real a;
+        real rho;
         real tmp;
         int ito = 1;
         
@@ -77,26 +83,41 @@ transformed parameters {
             }
             // compute gamma
             gamma = gamma_max * dt_norm * (1.0 - exp(-E[it]/E_star));
+            rho = respiration * dt_norm;
 
             w_next = rep_vector(0.0, m);
             for (i in 1:m){ // size-class loop
                 // compute delta_i
                 if (i >= j){
                     if (E[it] < delta_lightthresh){
-                        delta_i = delta_max * dt_days;
+                        delta_i = delta_max[i-j+1] * dt_days;
                     } else {
                         delta_i = 0.0;
                     }
                 }
                 
+                // fill superdiagonal (respiration)
+                if (i >= j){
+                    //A[i-1,i] = rho * (1.0-delta_i);
+                    a = rho * (1.0-delta_i);
+                    w_next[i-1] += a * w_curr[i];
+                } else if (i > 1){
+                    //A[i-1,i] = rho;
+                    a = rho;
+                    w_next[i-1] += a * w_curr[i];
+                }
                 // fill subdiagonal (growth)
-                if (i < j){
+                if (i == 1){
                     //A[i+1,i] = gamma;
                     a = gamma;
                     w_next[i+1] += a * w_curr[i];
+                } else if (i < j){
+                    //A[i+1,i] = gamma * (1.0-rho);
+                    a = gamma * (1.0-rho);
+                    w_next[i+1] += a * w_curr[i];
                 } else if (i < m){
-                    //A[i+1,i] = gamma * (1.0-delta_i);
-                    a = gamma * (1.0-delta_i);
+                    //A[i+1,i] = gamma * (1.0-delta_i) * (1.0-rho);
+                    a = gamma * (1.0-delta_i) * (1.0-rho);
                     w_next[i+1] += a * w_curr[i];
                 }
                 // fill (j-1)th superdiagonal (division)
@@ -106,20 +127,30 @@ transformed parameters {
                     w_next[i+1-j] += a * w_curr[i];
                 }
                 // fill diagonal (stasis)
-                if (i < j){
+                if (i == 1){
                     //A[i,i] = (1.0-gamma);
                     a = (1.0-gamma);
                     w_next[i] += a * w_curr[i];
+                } else if (i < j){
+                    //A[i,i] = (1.0-gamma) * (1.0-rho);
+                    a = (1.0-gamma) * (1.0-rho);
+                    w_next[i] += a * w_curr[i];
                 } else if (i == m){
-                    //A[i,i] = (1.0-delta_i);
-                    a = (1.0-delta_i);
+                    //A[i,i] = (1.0-delta_i) * (1.0-rho);
+                    a = (1.0-delta_i) * (1.0-rho);
                     w_next[i] += a * w_curr[i];
                 } else {
-                    //A[i,i] = (1.0-gamma) * (1.0-delta_i);
-                    a = (1.0-gamma) * (1.0-delta_i);
+                    //A[i,i] = (1.0-gamma) * (1.0-delta_i) * (1.0-rho);
+                    a = (1.0-gamma) * (1.0-delta_i) * (1.0-rho);
                     w_next[i] += a * w_curr[i];
                 }
             }
+            /*
+            // use this check to test model consistency when division is set to "a = delta_i;" (no doubling)
+            if (fabs(sum(w_next)-1.0)>1e-12){
+                reject("it = ",it,", sum(w_next) = ", sum(w_next), ", rho =", rho)
+            }
+            */
             // do not normalize population here
             w_curr = w_next;
         }
@@ -130,11 +161,15 @@ model {
     real popsum;
     
     // priors
-    delta_max ~ normal(3.0, 1.0);
+    delta_mu ~ normal(3.0, 1.0);
+    delta_sigma ~ exponential(1.0);
+    delta_max ~ normal(delta_mu, delta_sigma); // T[0.0,1440.0/dt];
     delta_lightthresh ~ normal(1000.0,1000.0);
     gamma_max ~ uniform(0.0,1440.0/dt);
+    respiration ~ uniform(0.0,10.0);
     E_star ~ normal(1000.0,1000.0);
     sigma ~ exponential(1000.0);
+    sigma_obssum ~ exponential(1000.0);
 
     // fitting observations
     for (it in 1:nt_obs){
@@ -146,5 +181,9 @@ model {
         }
         diff = diff/sigma;
         diff ~ normal(0.0, 1.0) T[0,];
+        
+        // new diff for popsum
+        diff = (popsum-obspopsum[it])/sigma_obssum;
+        diff ~ normal(0.0, 1.0);
     }
 }

@@ -34,6 +34,8 @@ def read_csv(fname):
 import pandas
 
 data = read_csv('FSC_Array5.csv')
+# new: set initial time to zero
+data['t_min'] -= data['t_min'][0]
 
 data_fig3 = pandas.read_excel('Zinser_figure 3.xlsx')
 data['par'] = (data_fig3['Ek-A'][1:].astype(float)*data_fig3['actual/Ek'][1:].astype(float)).values
