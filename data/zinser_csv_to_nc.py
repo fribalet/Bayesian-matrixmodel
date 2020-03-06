@@ -50,8 +50,8 @@ v_min = 0.18
 #v_min = 0.27
 #m = 20
 #delta_v_inv = 5
-m = 35
-delta_v_inv = 14
+m = 20
+delta_v_inv = 7
 import sys
 if len(sys.argv) > 1:
     m = int(sys.argv[1])
