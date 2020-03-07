@@ -33,7 +33,7 @@ def read_csv(fname):
 
 import pandas
 
-data = read_csv('FSC_Array5_rescaled.csv')
+data = read_csv('FSC_Array5_calibrated.csv')
 # new: set initial time to zero
 data['t_min'] -= data['t_min'][0]
 
@@ -46,12 +46,12 @@ create_plots = True
 # specify v
 #
 
-v_min = 0.18
+v_min = 0.001
 #v_min = 0.27
 #m = 20
 #delta_v_inv = 5
-m = 20
-delta_v_inv = 7
+m = 26 # 25 or 59
+delta_v_inv = 3 # 3 or 7
 import sys
 if len(sys.argv) > 1:
     m = int(sys.argv[1])
@@ -146,7 +146,7 @@ if create_plots:
 # write to netCDF
 #
 
-fname = 'Zinser_SizeDist_regrid-{}-{}.nc'.format(m, delta_v_inv)
+fname = 'Zinser_SizeDist_calibrated-{}-{}.nc'.format(m, delta_v_inv)
 with nc4.Dataset(fname,'w') as nc:
     nc.createDimension('time', w.shape[1])
     nc.createDimension('size', w.shape[0])
