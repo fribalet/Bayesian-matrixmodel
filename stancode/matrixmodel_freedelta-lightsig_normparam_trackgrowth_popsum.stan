@@ -90,7 +90,7 @@ transformed parameters {
                     if (E[it] < delta_lightthresh){
                         delta_i = delta_max[i-j+1] * dt_days;
                     } else {
-                        delta_i = delta_max[i-j+1] * dt_days * exp(-((E[it]-delta_lightthresh)/delta_lightsigma)^2);
+                        delta_i = delta_max[i-j+1] * dt_days * exp(-((E[it]-delta_lightthresh)/(2200.0*delta_lightsigma))^2);
                     }
                 }
                 
@@ -140,7 +140,7 @@ model {
     delta_max ~ normal(delta_mu, delta_sigma); // T[0.0,1440.0/dt];
     //delta_lightthresh ~ normal(1000.0,1000.0);
     delta_lightthresh ~ uniform(0.0,2000.0);
-    delta_lightsigma ~ exponential(100.0);
+    delta_lightsigma ~ uniform(0.1,1.0);
     gamma_max ~ uniform(0.0,1440.0/dt);
     E_star ~ normal(1000.0,1000.0);
     sigma ~ exponential(1000.0);
