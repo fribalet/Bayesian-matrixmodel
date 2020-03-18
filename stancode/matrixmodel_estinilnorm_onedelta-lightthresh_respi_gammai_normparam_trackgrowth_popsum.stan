@@ -72,6 +72,7 @@ transformed parameters {
         real rho;
         real tmp;
         real sizelim;
+        real x;
         int ito = 1;
        
         for (i in 1:m){
