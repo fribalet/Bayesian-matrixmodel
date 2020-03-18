@@ -47,10 +47,13 @@ transformed data {
     }
 }
 parameters {
-    real<lower=0.5> delta_max; 
+    real<lower=0> delta_mu; 
+    real<lower=0> delta_sigma; 
+    real<lower=0> delta_max[m-j+1]; 
     real<lower=0> delta_lightthresh;
     real<lower=0> delta_lightsigma;
     real<lower=0> gamma_max;
+    real<lower=-1,upper=1> xi;
     real<lower=0> respiration; 
     real<lower=0, upper=5000> E_star; 
     real w_ini_mu;
@@ -70,6 +73,8 @@ transformed parameters {
         real gamma;
         real a;
         real rho;
+        real tmp;
+        real sizelim;
         real x;
         int ito = 1;
        
@@ -92,25 +97,32 @@ transformed parameters {
                 }
             }
             
-            // compute gamma and rho
-            gamma = gamma_max * dt_norm * (1.0 - exp(-E[it]/E_star)) - respiration * dt_norm;
-            if (gamma > 0){
-                rho = 0.0;
-            } else {
-                rho = -gamma;
-                gamma = 0.0;
-            }
-
             w_next = rep_vector(0.0, m);
             for (i in 1:m){ // size-class loop
                 // compute delta_i
                 if (i >= j){
                     if (E[it] < delta_lightthresh){
-                        delta_i = delta_max * dt_days;
+                        delta_i = delta_max[i-j+1] * dt_days;
                     } else {
-                        delta_i = delta_max * dt_days * exp(-((E[it]-delta_lightthresh)/(2200.0*delta_lightsigma))^2);
+                        delta_i = delta_max[i-j+1] * dt_days * exp(-((E[it]-delta_lightthresh)/(2200.0*delta_lightsigma))^2);
                     }
                 }
+                // compute size-dependent gamma and rho
+                if (xi > 0){
+                    tmp = v[i]/v_max;
+                    sizelim = tmp/(xi+tmp);
+                } else {
+                    tmp = 1.0 + (v_min-v[i])/v_max;
+                    sizelim = tmp/(tmp-xi);
+                }
+                gamma = dt_norm * sizelim * (gamma_max * (1.0 - exp(-E[it]/E_star)) - respiration);
+                if (gamma > 0){
+                    rho = 0.0;
+                } else {
+                    rho = -gamma;
+                    gamma = 0.0;
+                }
+
                 
                 // fill superdiagonal (respiration)
                 if (i >= j){
@@ -178,11 +190,14 @@ model {
     real popsum;
     
     // priors
-    delta_max ~ normal(3.0, 1.0);
+    delta_mu ~ normal(3.0, 1.0);
+    delta_sigma ~ exponential(1.0);
+    delta_max ~ normal(delta_mu, delta_sigma); // T[0.0,1440.0/dt];
     //delta_lightthresh ~ normal(1000.0,1000.0);
     delta_lightthresh ~ uniform(0.0,2000.0);
     delta_lightsigma ~ uniform(0.1,1.0);
     gamma_max ~ uniform(0.0,1440.0/dt);
+    xi ~ normal(0.0, 0.1);
     //respiration ~ uniform(0.0,10.0);
     respiration ~ uniform(0.0,10.0);
     E_star ~ normal(1000.0,1000.0);
