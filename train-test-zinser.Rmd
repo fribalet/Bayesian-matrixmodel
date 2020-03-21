@@ -1,6 +1,6 @@
 ---
 title: "Training and test indices for Zinser data"
-author: "Greg Britten and Kristof Glauninger and Sangwon (Justin) Hyun"
+author: "Gregory Britten and Kristof Glauninger and Sangwon (Justin) Hyun"
 output:
   html_document:
     toc: true
@@ -167,11 +167,16 @@ i_test = unlist(read.csv(file = file.path(datadir, paste0(filenames[1], "-itest.
 # Stan code for model fitting
 
 Lastly, using this vector `itest`, from now on, **you should experiment on model
-variations only on the training points**, and **evaluate on the test points**.
+variations only on the training points**, and **evaluate on the test
+points**. Compared to existing scripts, the key difference is in the use of
+variable `log_like_test` -- we are explicitly looking for models that yield
+higher out-of-sample likelihoods.
 
 Here is roughly what to do in Stan. In fitting, only the training points
 `i_test[it]==0` are used. In calculating the test score, use only the points for
 which `i_test[it]==1`.
+
+
 
 ```{eval=FALSE}
 model {

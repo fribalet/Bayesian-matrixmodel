@@ -10,7 +10,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="Greg Britten and Kristof Glauninger and Sangwon (Justin) Hyun" />
+<meta name="author" content="Gregory Britten and Kristof Glauninger and Sangwon (Justin) Hyun" />
 
 
 <title>Training and test indices for Zinser data</title>
@@ -261,7 +261,7 @@ div.tocify {
 
 
 <h1 class="title toc-ignore">Training and test indices for Zinser data</h1>
-<h4 class="author">Greg Britten and Kristof Glauninger and Sangwon (Justin) Hyun</h4>
+<h4 class="author">Gregory Britten and Kristof Glauninger and Sangwon (Justin) Hyun</h4>
 
 </div>
 
@@ -390,7 +390,7 @@ i_test = unlist(read.csv(file = file.path(datadir, paste0(filenames[1], &quot;-i
 </div>
 <div id="stan-code-for-model-fitting" class="section level1">
 <h1>Stan code for model fitting</h1>
-<p>Lastly, using this vector <code>itest</code>, from now on, <strong>you should experiment on model variations only on the training points</strong>, and <strong>evaluate on the test points</strong>.</p>
+<p>Lastly, using this vector <code>itest</code>, from now on, <strong>you should experiment on model variations only on the training points</strong>, and <strong>evaluate on the test points</strong>. Compared to existing scripts, the key difference is in the use of variable <code>log_like_test</code> – we are explicitly looking for models that yield higher out-of-sample likelihoods.</p>
 <p>Here is roughly what to do in Stan. In fitting, only the training points <code>i_test[it]==0</code> are used. In calculating the test score, use only the points for which <code>i_test[it]==1</code>.</p>
 <pre class="eval"><code>model {
     real diff;
