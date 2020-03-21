@@ -1,0 +1,344 @@
+---
+title: "Spline model for division rate"
+author: "Sangwon Hyun and Kristof Glauninger and Francois Ribalet (and others)"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=14, fig.height=5, echo=TRUE, warning=FALSE,
+                      message=FALSE, eval=TRUE, cache=FALSE)
+library(splines)
+library(ncdf4)
+library(viridis)
+library(fields)
+library(rstan)
+
+## Helper function
+windowsmooth <- function(x, n){
+  ## x = rnorm(100)
+  ## n=10
+  ii = seq.int(from=0, to=length(x)-n, length=n)
+  jj = ii + n
+  inds = Map(function(a,b)(a+1):b, ii, jj)
+  sapply(inds, function(ind)mean(x[ind]))
+}
+```
+
+# Visualize data
+
+First, we make a visualization of the seaflow data, from the file
+`data/SeaFlow_SizeDist_regrid-15-5.nc` in the github repository
+https://github.com/fribalet/Bayesian-matrixmodel .
+
+```{r viz, fig.width=15, fig.height=10}
+## Setup
+ndays            <- 4.0
+limit_to_numdays <- 4.0
+stride_t_obs     <- 10
+data             <- list()
+data$dt          <- 10
+source(file.path('data_processing.r'))
+
+## Visualize the data
+ncat = nrow(data$obs)
+cols = colorRamps::blue2red(ncat)
+ylim = range(data$obs)
+
+## Make two plots:
+par(mfrow=c(2,1))
+par = windowsmooth(data$PAR,  ncol(data$obs)) 
+
+## Smaller sizes
+iis=1:7
+matplot(t(data$obs), type='l', lwd=2, lty=1, ylim=ylim, col='grey80',
+        ylab="")
+lines(par/max(par) * 0.2, lwd=3, lty=3)
+cutoff = quantile(par/max(par), 0.2)
+lines(pmin(par/max(par) * 0.2, cutoff), lwd=3, lty=1)
+matlines(t(data$obs)[,iis], type='l', lwd=2, col=cols[iis], lty=1, ylim=ylim)
+title(main="Smaller sizes")
+
+## Larger sizes
+iis=8:15
+matplot(t(data$obs), type='l', lwd=2, col='grey80', lty=1, ylim=ylim,
+        main="Larger sizes", ylab="")
+lines(par/max(par) * 0.2, lwd=3, lty=3)
+cutoff = quantile(par/max(par), 0.2)
+lines(pmin(par/max(par) * 0.2, cutoff), lwd=5, lty=1)
+matlines(t(data$obs)[,iis], type='l', lwd=2, col=cols[iis], lty=1, ylim=ylim)
+```
+
+We can see that the 
+
+1. Small size distributions negatively correlate with the large size
+   distributions,
+  
+2. Their diel cycles are clearly visible,
+
+3. The small size distributions increase over night (because division is
+   prominent), and
+   
+4. The large size distributions increase with a slight lag to the sunlight
+   cycle.
+
+
+# Spline model for division rate
+
+Recall from the workshop
+[slides](https://github.com/jpmattern/bayesian_cbiomes/blob/master/lecture_materials/paul/matrixpop.pdf):
+
+![](/home/shyun/Pictures/A-matrix-model.png)
+
+that one idea for modeling the division rate is as follows:
+
+$$\delta_{i}\left(\Delta_{t}\right)=\Delta_{t} \delta_{\max } \frac{v_{i}^{b}}{1+v_{i}^{b}} $$
+
+An alternative idea is that $\{\delta_i\}_{i=1}^{15}$ are all separate parameters,
+not bound by a parametric form.
+
+My proposal: the division rate vector $\delta \in \mathbb{R}^{15}$ is a sum of
+$J$ basis vectors:
+
+$$ \delta (\Delta_t) = \Delta_t \cdot \sum_{j=1}^J \alpha_j b_j$$
+
+where $b_j$ are spline bases in $\mathbb{R}^n$. The $J$ spline coefficients
+$\{\alpha_j \in \mathbb{R}\}_{j=1,\cdots,J}$ are new model parameters to
+estimate.
+
+# What are spline bases and how to use them?
+
+Spline bases are *piecewise* polynomials in the domain of the data ($i=1$ to
+$15$, or at $\{v_i\}_{i=1,\cdots, 15}$).
+
+In our case, the number of bases $J$ governs the smoothness.
+
+The $J$ spline coefficients $\alpha_j$ are estimated in the model in the usual
+way e.g. it is given a set of Gaussian priors. Two ends of the spectrum
+
+1. Small $J=1$ gives you the smoothest interpretation. (We are using cubic
+spline bases, so the smoothest model is zero. There is another knob that we
+won't turn, which is to use $k$'th degree polynomial spline bases.)
+
+2. Large $J$ gives you an interpolation.
+
+3. Somewhere in $J < 15$, like $J=5$, lets you achieve just the right smooth
+   fit.
+
+
+```{r spline-example-2, fig.width=20, fig.height=3}
+n = 15
+set.seed(0)
+mn = sin((1:n)/(0.5*n) * 2 * pi)
+y = mn + rnorm(n, 0, 0.5)
+
+for(J in c(1,5,10)){
+par(mfrow=c(1,3))
+
+## Equally spaced knots
+B <- bs(1:n,
+        knots = seq(from=1, to=n, length=J),
+        degree = 3, intercept = TRUE)
+
+## par(cex=2)
+plot(y, pch=16, cex=1.5, col='grey50')
+title(main=paste0("J = ", J))
+g = lm(y~B-1)
+lines(g$fitted, pch=16, col='blue', type='o')
+abline(v=1:n, col='grey', lwd=1, lty=3)
+## lines(out, type='o', lwd=2, pch=15, cex=1)
+lines(mn, lwd=3, col='red')
+legend("topright", col=c('grey50', 'blue'), pch=16, legend=c("Data","Spline estimates"))
+
+## Plot the spline bases
+matplot(B, type='l')
+
+## Plot the fitted values of each basis
+cc = coef(g)
+plot(NA, xlim=c(1,n),ylim=range(y))##c(0,max(y)))
+for(ii in 1:(J+3)){
+  lines(B[,ii] * cc[ii], lty=2, lwd=2)
+}
+abline(h=cc[1], lty=2, lwd=2)
+lines(g$fitted, pch=16, col='blue', type='o')
+}
+```
+
+
+# Why use splines?
+
+1. Smoothness in the estimated division rate across size classes fits scientific
+   intuition.
+
+2. Instead of an artificial restriction of the division rate vector to a
+   parametric form (e.g. sigmoidal shaped vectors) without a clear scientific
+   reason to do so, let's let the data speak.
+   
+   3. The current model ideas make the division rate vector a function of
+   $v^{\text{left}}_i$. This is left-hand-side limit of each size
+   class. Instead, we can make the division rate be a smooth function of
+   $v^{\text{mid}}_i$, which is the middle of the size class
+   $v^{\text{mid}}_iv^{\text{left}}_i + v^{\text{left}}_{i+1}$.
+
+
+
+<!-- Alternatively, you can place knots at fewer locations than the entire set of -->
+<!-- data points (15, in our case), and fit an ordinary least squares regression on -->
+<!-- these $J$ bases. -->
+
+
+<!-- One can also change the `df` option in `splines::bs()` R function. -->
+
+How to achieve this in stan? Something like this:
+
+```{example-in-stan, echo=TRUE, eval=FALSE}
+transformed parameters {
+    matrix[m,nt_obs] mod_obspos;
+    {
+        // helper variables
+        vector[m] w_curr; 
+        vector[m] w_next;
+        real delta_i = 0.0;
+        real gamma;
+        real a;
+        real tmp;
+        int ito = 1;
+
+    	// Justin's addition
+		real a0;
+		vector[m] a1;
+
+        w_curr = w_ini;
+
+        for (it in 1:nt){ // time-stepping loop
+            // record current solution 
+            if (it == it_obs[ito]){
+                mod_obspos[,ito] = w_curr;
+                ito += 1;
+                if (ito > nt_obs){
+                    break;
+                }
+            }
+            // compute gamma
+            gamma = gamma_max * dt_days * (1.0 - exp(-E[it]/E_star));
+
+
+	        // Justin's addition: Estimate delta once, as a function of v (or just i)
+      	    /* Remember: define delta, a0, a above */
+	        delta = to_vector(a0 + a1 * B)
+
+            w_next = rep_vector(0.0, m);
+            for (i in 1:m){ // size-class loop
+                // compute delta_i
+	            delta_i = delta[i]
+
+                // fill subdiagonal (growth)
+                if (i < j){
+                    //A[i+1,i] = gamma;
+                    a = gamma;
+                    w_next[i+1] += a * w_curr[i];
+                } else if (i < m){
+                    //A[i+1,i] = gamma * (1.0-delta_i);
+                    a = gamma * (1.0-delta_i);
+                    w_next[i+1] += a * w_curr[i];
+                }
+                // fill (j-1)th superdiagonal (division)
+                if (i >= j){
+                    //A[i+1-j,i] = 2.0*delta_i;
+                    a = 2.0*delta_i;
+                    w_next[i+1-j] += a * w_curr[i];
+                }
+```
+
+# Extensions
+
+## Tune $J$
+
+(This is not important for now -- we should just use a fixed reasonably small $J$.)
+
+The choice of $J$ (locations and number of the knots) described thus far are
+arbitrary. This is fine for now, but a more *principled* way is to starting with
+a much larger set of spline bases (e.g. large $J$, like $J \simeq n$), then
+using a smoothing prior on the spline coefficients. The spline bases are the
+local polynomials, so that when coefficients are close to each other, the
+resulting vector $\sum_{j=1}^J \alpha_j b_j$ should be smoother.
+
+The prior on the coefficients are something like this:
+
+$$\alpha_{1} \sim \mathcal{N}(0,1) \quad \alpha_{i} \sim
+\mathcal{N}\left(\alpha_{i-1}, \tau\right) \quad \tau \sim \mathcal{N}(0,1)$$
+
+and in stan code, it is something like this:
+
+```{example, eval=FALSE, include=TRUE, echo=TRUE}
+transformed parameters { 
+  row_vector[num_basis] a; 
+  vector[num_data] Y_hat; 
+  a[1] = a_raw[1]; 
+  for (i in 2:num_basis) 
+    a[i] = a[i-1] + a_raw[i]*tau; 
+  Y_hat = a0*to_vector(X) + to_vector(a*B); 
+} 
+``` 
+
+## Enforce monotonicity
+
+We can enforce monotonicity in the division rate vector artificially in the
+spline framework as well. We can use an overall linear basis (the one that is
+basically a scaled version of `seq(from=1, to=n, by=1)`, to always be included
+with the B spline basis), and make sure the coefficient has a large absolute
+value.
+
+Here is one example -- build a set of bases that are all increasing
+(e.g. "I-spline" basis), then make the coefficients all negative (here, I used
+`nnls()` for a nonnegativity constraint least squares fitting for the purpose of
+demonstration, but in a Bayesian model, this could be achieved by constraining
+the coefficients to be all positive or negative).
+
+
+Other keywords
+to explore: isotonic trend filtering, isotonic regression.
+
+```{r}
+library(splines2)
+library(lsei)
+n = 15
+set.seed(0)
+mn = sin((1:n)/(0.5*n) * 2 * pi) + 0.2*(1:n)
+y = mn + rnorm(n, 0, 0.5)
+
+J = 8
+par(mfrow=c(1,3))
+plot(y, pch=16, cex=1.5, col='grey50')
+B = iSpline(1:n,
+            df = J,
+            intercept=TRUE)
+u <- nnls(B, y)$x
+lines(B%*%u, lwd=3, col='blue', pch=16, type='o')
+abline(v=1:n, col='grey', lwd=1, lty=3)
+legend("topright", col=c('grey50', 'blue'), pch=16, legend=c("Data","Spline estimates"))
+lines(mn, lwd=3, col='red')
+
+## Plot the spline bases
+matplot(B, type='l')
+
+## Plot the fitted values of each basis
+cc = u
+plot(NA, xlim=c(1,n),ylim=range(y))##c(0,max(y)))
+for(ii in 1:(J)){
+  lines(B[,ii] * cc[ii], lty=2, lwd=2)
+}
+abline(h=cc[1], lty=2, lwd=2)
+lines(B%*%u, lwd=3, col='blue', pch=16, type='o')
+## lines(u$fitted, pch=16, col='blue', type='o')
+```
+
+# References:
+
+1. https://mc-stan.org/users/documentation/case-studies/splines_in_stan.html
+2. https://www.dropbox.com/s/lxiefrnu4sgp065/chapter-12?dl=0
+3. https://rpubs.com/deleeuw/268327

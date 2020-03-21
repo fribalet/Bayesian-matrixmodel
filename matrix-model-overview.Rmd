@@ -1,0 +1,323 @@
+---
+title: "Matrix model overview"
+author: "Sangwon Hyun"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+
+
+```{r setup}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE,
+                      message=FALSE, eval=TRUE, cache=TRUE,
+                      fig.width=20, fig.height=20)
+library(ncdf4)
+## Helper function
+windowsmooth <- function(x, n){
+  ## x = rnorm(100)
+  ## n=10
+  ii = seq.int(from=0, to=length(x)-n, length=n)
+  jj = ii + n
+  inds = Map(function(a,b)(a+1):b, ii, jj)
+  sapply(inds, function(ind)mean(x[ind]))
+}
+```
+
+# Model setup
+
+(Heavily borrowed from the Paul's Bayesian workshop slides on matrix population
+modeling here
+[slides](https://github.com/jpmattern/bayesian_cbiomes/blob/master/lecture_materials/paul/matrixpop.pdf)
+
+In cell-level (cytometry) data collected over time from the ocean, one
+interesting derived dataset is the empirical distribution of biomass (or counts)
+over time. Using scientific intuition about the cells' interaction with the
+environment, we can model the evolution of the empirical biomass distribution
+over time. This lends valuable empirical evidence of our theoretical
+understanding of cells' life cycles in the ocean.
+
+We describe a matrix population model.
+
+First, discretize the empirical biomass distribution into $m$ sizes.
+
+- $m$: number of size classes 
+- $v_{\min } \quad$: minimum cell diameter. 
+- $\Delta_{v}$: determines size class spacing, where $\Delta_{v}^{-1}$ must be an integer
+
+
+The $i$'th size class has a diameter between $v_i$ and $v_{i+1}$, which are
+defined as:
+
+$$ v_{i}=v_{\min } 2^{(i-1) \Delta_{v}} \text { for } i=1, \ldots, m+1.$$
+
+The empirical distribution at time $t$ is:
+
+$$w(t) \in \mathbb{R}^{m},$$
+
+whose $i$'th entry ($i=1,\cdots,m$) is the normalized counts (or amount of
+biomass) in the $i$'th size class; normalization is done so that $\sum_{i=1}^{n}
+w_{i}(t)=1$.
+
+The main mechanism for evolution over time is through the time propagation
+matrix:
+
+$$A\left(t, \Delta_{t}\right) \in \mathbb{R}^{m \times m} \quad$$ 
+
+defined as the transition of the distribution from time $t$ to a later time
+$t+\Delta_t$. This matrix will directly encode three basic type of cell
+activities.
+
+1. Growth: The entries in the blue, which are subdiagonal entries, represent a
+	transition to the next larger size class.
+
+2. Division: The entries in the orange cells, $j$ away from the diagonal,
+   represent a division of cells so that biomass/counts transition from the
+   $j$'th cell to the size class in the diagonal, representing an exact halving
+   of the cell size. (The value of $j$ is determined by the diameters in the
+   size class)
+
+3. Stasis: The diagonal entries. The rest of the cells remain at their size class.
+
+![](/home/shyun/repos/matrix-model/figures/A-matrix-model-cropped.png)
+
+
+Using this evolution mechanism, the size distribution at the next time is
+defined as:
+
+$$ w\left(t+\Delta_{t}\right)=\frac{A\left(t, \Delta_{t}\right) w(t)}{\left\|A\left(t, \Delta_{t}\right) w(t)\right\|_{1}},$$
+
+
+which is the normalized size distribution after having evolved by a left
+multiplication by $A(t, \Delta)$.
+
+# Model details
+
+## Growth function
+
+Driven directly by the sunlight.
+
+$$\gamma\left(t, \Delta_{t}\right)=\Delta_{t} \gamma_{\max }\left(1-\exp
+\left(-\frac{E(t)}{E^{*}}\right)\right)$$
+
+TODO: be more detailed about this e.g. define the variables, explain this effect
+in words.
+
+TODO: will growth be size dependent? Ask the group's opinion.
+
+## Division
+
+Possibly size-dependent, parametric or non-parametric. Splines are one way to go.
+
+
+## Respiration
+
+One major missing component (in the model described thus far) could be cell
+respiration, another major known cell activity that directly affects the cell
+size distribution. There were several ideas
+
+1. A super-diagonal set of entries, or
+2. Growth rate allowed to be *negative*.
+
+
+# Datasets
+
+## Zinser data
+
+Basically, two days' worth of 2-hourly size distribution data collected in a
+controlled lab environment.
+
+TODO: describe more rigorously here.
+
+```{r retrieve-data-helper}
+##' Helper to open Zinser data.
+##' @param filename NC file filename, like
+##'   \code{"data/Zinser_SizeDist_calibrated-52-12.nc"}.
+##' @return List containing data \code{obs} (T x m matrix), \code{time} (T
+##'   length list of minutes passed since the beginning), \code{num_sizeclass}
+##'   (Number of size classes, or m), and \code{v} (left-hand-side border of
+##'   size classes).
+open_zinser <- function(filename = "Zinser_SizeDist_calibrated-52-12.nc",
+                        datadir = "data"){
+
+  ## Read data.
+  ## "data/Zinser_SizeDist_calibrated-52-12.nc"
+  nc <- nc_open(file.path(datadir, filename))
+  PAR   <- ncvar_get(nc,'PAR') ## Sunlight
+  w_obs <- ncvar_get(nc,'w_obs') ## Data
+
+  ## List variables in the nc file.
+  names(nc$var)
+  
+  ## What are these?
+  m <- ncvar_get(nc,'m') ## Number of size classes  
+  
+  ## Time (in number of minutes since the beginning)
+  time  <- ncvar_get(nc,'time') 
+  
+  ## Size classes
+  delta_v_inv <- ncvar_get(nc,'delta_v_inv')
+  v_min       <- ncvar_get(nc,'v_min')
+  delta_v <- 1/delta_v_inv
+  v <- v_min * 2^(((1:m) - 1) * delta_v)
+
+  ## Name of w_obs
+  rownames(w_obs) = time
+  colnames(w_obs) = v
+
+  ## Return
+  return(list(obs = w_obs,
+              time = time,
+              num_sizeclass = m,
+              v = v,
+              nc = nc,
+              PAR = PAR))
+}
+```
+
+We can see that the growth and division is in concordance with the sunlight
+variable `par`, over the two day period of the data.
+
+The bottom plot is another version of the data at a different number of
+size classes. There are half as many size categories (26 of them), and the same
+number of ($25$) time points.
+
+```{r plot, fig.width=14, fig.height=7}
+## Retrieve data
+for(filename in c("Zinser_SizeDist_calibrated-52-12.nc",
+                  "Zinser_SizeDist_calibrated-26-6.nc")){
+
+  ## Load data
+  dat = open_zinser(filename)
+  
+  ## Plot *calibrated* Zinser data.
+  ncat = ncol(dat$obs) ## alternatively, ncat = dat$num_sizeclass
+  cols = colorRamps::blue2red(ncat)
+  ylim = range(dat$obs)
+  matplot(dat$obs, col = cols, lwd = seq(from = 0.1, to = 5, length = ncat),
+          lty = 1, type = 'l', ylab = "", xlab = "")
+  title(main = paste0("Zinser data, ", ncat, " size classes"))
+
+
+  ## Making i_test
+  d = 3
+  i_test = rep(0, length(dat$time))
+  i_test[seq(from=d, to=length(dat$time), by=d)] = 1
+
+  ## Add grey regions for the time points that we're going to leave out.
+  cex = 1
+  abline(v = which(i_test == 1), col='grey', lwd=3, lty=1)
+  for(ii in which(i_test == 1)){
+    points(x=rep(ii, dat$num_sizeclass), y=dat$obs[ii,], pch=16, col="grey", cex=cex)
+    points(x=rep(ii, dat$num_sizeclass), y=dat$obs[ii,], pch=16, col="white", cex=cex * 0.7)
+    points(x=rep(ii, dat$num_sizeclass), y=dat$obs[ii,], pch=1, col="grey", cex=cex)
+  }
+  
+  ## Add sunlight
+  scpar = scale(dat$PAR)
+  scpar = scpar - min(scpar)
+  scpar = scpar / max(scpar) * max(dat$obs)
+  lines(scpar, lwd = 5)
+
+  ## Add legend
+  legend("topright", lwd=3, col='grey', pch=1, legend="Test data")
+}
+```
+
+## (Lagrangian) Seaflow data
+
+Collected from the ocean, following a parcel of water. Much more fine grained in
+time (TODO maybe we can utilize this?). 
+
+TODO: describe more rigorously here.
+
+
+We can make a visualization of the seaflow data, from the file
+`data/SeaFlow_SizeDist_regrid-15-5.nc` in the github repository
+https://github.com/fribalet/Bayesian-matrixmodel .
+
+```{r viz, fig.width=15, fig.height=10}
+## Setup
+ndays            <- 4.0
+limit_to_numdays <- 4.0
+stride_t_obs     <- 10
+data             <- list()
+data$dt          <- 10
+source(file.path('data_processing.r'))
+
+## Visualize the data
+ncat = nrow(data$obs)
+cols = colorRamps::blue2red(ncat)
+ylim = range(data$obs)
+
+## Make two plots:
+par(mfrow=c(2,1))
+par = windowsmooth(data$PAR,  ncol(data$obs)) 
+
+## Smaller sizes
+iis=1:7
+matplot(t(data$obs), type='l', lwd=2, lty=1, ylim=ylim, col='grey80',
+        ylab="")
+lines(par/max(par) * 0.2, lwd=3, lty=3)
+cutoff = quantile(par/max(par), 0.2)
+lines(pmin(par/max(par) * 0.2, cutoff), lwd=3, lty=1)
+matlines(t(data$obs)[,iis], type='l', lwd=2, col=cols[iis], lty=1, ylim=ylim)
+title(main="Smaller sizes")
+
+## Larger sizes
+iis=8:15
+matplot(t(data$obs), type='l', lwd=2, col='grey80', lty=1, ylim=ylim,
+        main="Larger sizes", ylab="")
+lines(par/max(par) * 0.2, lwd=3, lty=3)
+cutoff = quantile(par/max(par), 0.2)
+lines(pmin(par/max(par) * 0.2, cutoff), lwd=5, lty=1)
+matlines(t(data$obs)[,iis], type='l', lwd=2, col=cols[iis], lty=1, ylim=ylim)
+```
+
+We can see that the 
+
+1. Small size distributions negatively correlate with the large size
+   distributions,
+  
+2. Their diel cycles are clearly visible,
+
+3. The small size distributions increase over night (because division is
+   prominent), and
+   
+4. The large size distributions increase with a slight lag to the sunlight
+   cycle.
+
+## Comparison 
+
+- TODO Qualitative comparison of the two datasets. 
+- Pro/con comparison?
+
+
+# Literature
+
+- TODO: Briefly summarize Sosik model.
+- TODO: Find more applications of matrix models elsewhere.
+
+# Model fitting
+
+- TODO: Describe the actual iterations (e.g. in 20-min intervals, one hour at a time) 
+- TODO: Describe the Bayesian fitting and setup (Basically, I need to study it
+  more)
+- TODO: Write another short section about model evalution (training/test split).
+
+
+# Writing/questions
+
+1. Matrix model book; can I get an online copy? Other references:
+  - https://link.springer.com/chapter/10.1007/978-1-4615-5973-3_2
+  - https://www.dropbox.com/s/7ik7bx6uglznjwz/caswell-book-table-of-contents.pdf?dl=0
+2. From Caswell papers,
+   https://www.dropbox.com/s/i2axf4ricgzioo7/caswell-2019.pdf?dl=0, there are
+   repeated reference to eigenvalues of the A matrix being linked to
+   growth. What else is there to learn about this?
+3. Counts or biomass?
+4. It would be great to have an introductory figure showing what the data is, as
+   early as possible in the paper.
+
