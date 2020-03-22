@@ -1,1 +1,35 @@
-*_cache*
+# Created by https://www.gitignore.io/api/r
+# Edit at https://www.gitignore.io/?templates=r
+
+### R ###
+# History files
+.Rhistory
+.Rapp.history
+
+# knitr and R markdown default cache directories
+*_cache/
+/cache/
+*_files/
+
+
+
+
+
+# Created by https://www.gitignore.io/api/jupyternotebooks
+# Edit at https://www.gitignore.io/?templates=jupyternotebooks
+
+### JupyterNotebooks ###
+# gitignore template for Jupyter Notebooks
+# website: http://jupyter.org/
+
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Remove previous ipynb_checkpoints
+#   git rm -r .ipynb_checkpoints/
+
+# End of https://www.gitignore.io/api/jupyternotebooks

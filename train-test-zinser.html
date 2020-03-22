@@ -391,7 +391,7 @@ i_test = unlist(read.csv(file = file.path(datadir, paste0(filenames[1], &quot;-i
 <div id="stan-code-for-model-fitting" class="section level1">
 <h1>Stan code for model fitting</h1>
 <p>Lastly, using this vector <code>itest</code>, from now on, <strong>you should experiment on model variations only on the training points</strong>, and <strong>evaluate on the test points</strong>. Compared to existing scripts, the key difference is in the use of variable <code>log_like_test</code> – we are explicitly looking for models that yield higher out-of-sample likelihoods.</p>
-<p>Here is roughly what to do in Stan. In fitting, only the training points <code>i_test[it]==0</code> are used. In calculating the test score, use only the points for which <code>i_test[it]==1</code>.</p>
+<p>Here is roughly what to do in Stan. In fitting (training), only the training points <code>i_test[it]==0</code> are used. In calculating the test score, use only the time points for which <code>i_test[it]==1</code>.</p>
 <pre class="eval"><code>model {
     real diff;
     

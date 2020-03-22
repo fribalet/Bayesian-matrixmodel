@@ -41,7 +41,8 @@ understanding of cells' life cycles in the ocean.
 
 We describe a matrix population model.
 
-First, discretize the empirical biomass distribution into $m$ sizes.
+First, for simplicity, assume *empirical biomass distribution* is discrete and
+have $m$ size classes:
 
 - $m$: number of size classes 
 - $v_{\min } \quad$: minimum cell diameter. 
@@ -289,9 +290,12 @@ We can see that the
 4. The large size distributions increase with a slight lag to the sunlight
    cycle.
 
-## Comparison 
+## Comparison of the two datasets
 
 - TODO Qualitative comparison of the two datasets. 
+  1. Zinser data is *experimental* data, so division rate can be directly
+     calculated (assumes no cell growth), and is taken to be the derivative of
+     the summed size distribution.
 - Pro/con comparison?
 
 
@@ -306,6 +310,138 @@ We can see that the
 - TODO: Describe the Bayesian fitting and setup (Basically, I need to study it
   more)
 - TODO: Write another short section about model evalution (training/test split).
+
+## Bayesian model setup
+
+At the minimum, we should set up the framework of:
+
+1. **Prior**: The various "parameters" of the matrix model include
+- $E^*$: parameter in the growth function.
+- $\sigma$: noise of the data, around the mean
+
+2. **Data likelihood**: The data are the observed size proportions $\{w(t) \in
+\mathbb{R}^m\}_{t=1,\cdots,T}$. These measurements lie on a simplex
+i.e. $\sum_{i=1}^m w(t)[i] = 1$ for all $t=1, \cdots, T$.
+
+We should look into whether we can model $w(t)$ these directly as
+compositions. I don't think this will be straightforward, or easy to write
+simply as a likelihood model.
+
+In the meantime, we need a way to link the observed size proportions $w(t)$ to
+those of our estimated $\hat w(t)$ (whose posterior sample we observe). One way
+is to perform a log ratio transform, with respect to one category. Let's say
+that that one category is the last size class. Then, the log ratio transform is
+
+$$l_t[i] = log(\frac{y_t[i]}{y_t[n]}), i=1,\cdots, n$$
+
+This is a mapping from $\mathbb{R}^n$ to $\mathbb{R}^{n-1}$, where the mapped
+values have no geometric constraint.
+
+There is no obvious utility in terms of restoring normality or symmetry or bell
+shaped-ness -- in fact, there is not that much evidence that the resulting
+posterior distribution of individual $w(t)_i$'s are pathologically
+non-bell-shaped (are they?). The log-ratio transform does seem to help with this
+though -- see an artificial simulation of $T=1000$ Poisson-distributed 3-variate
+counts, transformed to compositions, we can see that while this distribution are
+not pathological, the transformed version seems closer to normal except for in
+the tails.
+
+
+```{r}
+## Generate a bunch of 3-length probabilities, from data. This is a weird
+## potentially misleading example.
+lambda = 100
+n = 3
+N = 1000
+pmat = t(sapply(1:N, function(ii){
+  X = rpois(n, lambda)
+  p = X/sum(X)
+}))
+
+par(mfrow=c(3,3))
+for(phi in seq(from=10, to=180, length=9)){
+  par(mar=c(1,1,1,1))
+  plot3D::scatter3D(pmat[,1], pmat[,2], pmat[,3],
+                    col = rgb(0,0,1,0.2),
+                    pch = 16,
+                    bty='g', phi=phi,
+                    ticktype = "detailed") ## Using detailed ticks
+}
+
+## Do an *isometric* log-ratio transform
+pmat_transformed = t(apply(pmat, 1, function(myrow){
+  gm = prod(myrow)^(1/3)
+  ## log(myrow[1:2]/myrow[3])
+  log(myrow[1:2]/gm)
+}))
+```
+
+```{r, fig.width=5, fig.height=5}
+## Before transformation
+library(ggplot2)
+df = data.frame(x=pmat[,2], y = pmat[,3])
+p <- ggplot2::ggplot(df, aes(x, y)) + geom_point() + theme_classic() + ggtitle("Before transformation")
+ggExtra::ggMarginal(p, type = "histogram") 
+MVN::mvn(pmat, multivariatePlot= "qq")
+title(main="2d Normal QQ plot")
+```
+
+```{r, fig.width=5, fig.height=5}
+## After transformation
+df = data.frame(x=pmat_transformed[,1], y = pmat_transformed[,2])
+p <- ggplot2::ggplot(df, aes(x, y)) + geom_point() + theme_classic()+ ggtitle("After log ratio transformation")
+ggExtra::ggMarginal(p, type = "histogram")
+
+MVN::mvn(pmat_transformed, multivariatePlot= "qq")
+title(main="2d Normal QQ plot")
+```
+
+Rather, the problem is in that proportions have a constant sum of $1$, so that
+the euclidean distance between two proportion vectors in $\mathbb{R}^n$ can be a
+misleading (distorted) quantity. (For instance, when $n=2$, then all
+measurements lie on a line. so the error is not sensible; instead, one might
+just as well omit the second category and see the estimation error in the first
+category; the log ratio transform achieves this effect).
+
+Note, *if* we observe the total number of particles $C_t$ as well, so that we
+know the total particles at $W(t) = C_t w(t)$, then we might be able to use a
+multinomial model
+
+Some other leads: 
+- https://link.springer.com/article/10.1007/s10260-020-00512-y
+- The **Arcsine** transformation: https://en.wikipedia.org/wiki/Cohen%27s_h
+- Aitchinson's short book on compositions:
+- http://www.leg.ufpr.br/lib/exe/fetch.php/pessoais:abtmartins:a_concise_guide_to_compositional_data_analysis.pdf
+- http://www.sediment.uni-goettingen.de/staff/tolosana/extra/CoDa.pdf
+*Currently* the data model (i.e. likelihood model) is the sum of the data.
+
+```{eval=FALSE}
+# From "stan/matrixmodel_sigmoidaldelta.stan"
+...
+	for(it in 1:nt_obs){
+		if(i_test[it] == 1){
+			diff = 0.0;
+			for(iv in 1:m){
+				diff += fabs(mod_obspos[iv,it] - obs[iv,it]);
+			}
+			diff = diff/sigma;
+			log_like_test += normal_lpdf(diff | 0.0, 1.0);
+		}
+	}
+	log_like_test = log_like_test/n_test;
+```
+
+This is saying the data likelihood is that of the SUM of the errors in
+estimating one category across ALL categories is distributed as a truncated
+normal:
+
+$$ \sum_{i=1}^m |w(t)[i] - W(t)[i] | \sim \mathrm{truncNorm}(0, 1)$$
+
+While this will achieve the basic effect of "small" It allows for a large error in some
+categories, because the sum of the absolute values
+
+Why is it bad for us to use the same $\sigma$ across categories? In other words,
+do you want different "standards" in terms of estimation, across categories?
 
 
 # Writing/questions

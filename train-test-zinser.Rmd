@@ -172,9 +172,9 @@ points**. Compared to existing scripts, the key difference is in the use of
 variable `log_like_test` -- we are explicitly looking for models that yield
 higher out-of-sample likelihoods.
 
-Here is roughly what to do in Stan. In fitting, only the training points
-`i_test[it]==0` are used. In calculating the test score, use only the points for
-which `i_test[it]==1`.
+Here is roughly what to do in Stan. In fitting (training), only the training
+points `i_test[it]==0` are used. In calculating the test score, use only the
+time points for which `i_test[it]==1`.
 
 
 
