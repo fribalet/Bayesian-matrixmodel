@@ -20,7 +20,6 @@ source('data_processing.r')
 ##############################################################################
 ## STAN MODELING #############################################################
 ##############################################################################
-
 data$i_test = c(rep(0,round(dim(data$obs)[2]*(2/3))),rep(1,round(dim(data$obs)[2]*(1/3))))
 
 mod_free    <- stan_model('d:/dropbox/working/bayesian-matrixmodel/matrixmodel_freedelta_CV.stan')
