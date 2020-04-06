@@ -194,8 +194,8 @@ model {
     delta_mu ~ normal(3.0, 1.0);
     delta_sigma ~ exponential(1.0);
     delta_max ~ normal(delta_mu, delta_sigma); // T[0.0,1440.0/dt];
-    //delta_lightthresh ~ normal(1000.0,1000.0);
-    delta_lightthresh ~ uniform(0.0,2000.0);
+    delta_lightthresh ~ normal(100.0,100.0);
+    //delta_lightthresh ~ uniform(0.0,2000.0);
     delta_lightsigma ~ uniform(0.1,1.0);
     gamma_max ~ uniform(0.0,1440.0/dt);
     xi ~ normal(0.0, 0.1);
