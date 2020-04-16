@@ -52,8 +52,6 @@ parameters {
     real<lower=0> delta_mu; 
     real<lower=0> delta_sigma; 
     real<lower=0> delta_max[m-j+1]; 
-    real<lower=0> delta_lightthresh;
-    real<lower=0> delta_lightsigma;
     real<lower=0> gamma_max;
     real<lower=0> respiration; 
     real<lower=0, upper=5000> E_star; 
@@ -108,11 +106,7 @@ transformed parameters {
             for (i in 1:m){ // size-class loop
                 // compute delta_i
                 if (i >= j){
-                    if (E[it] < delta_lightthresh){
-                        delta_i = delta_max[i-j+1] * dt_days;
-                    } else {
-                        delta_i = delta_max[i-j+1] * dt_days * exp(-((E[it]-delta_lightthresh)/(2200.0*delta_lightsigma))^2);
-                    }
+                    delta_i = delta_max[i-j+1] * dt_days;
                 }
                 
                 // fill superdiagonal (respiration)
@@ -184,9 +178,6 @@ model {
     delta_mu ~ normal(3.0, 1.0);
     delta_sigma ~ exponential(1.0);
     delta_max ~ normal(delta_mu, delta_sigma); // T[0.0,1440.0/dt];
-    delta_lightthresh ~ normal(100.0,100.0);
-    //delta_lightthresh ~ uniform(0.0,2000.0);
-    delta_lightsigma ~ normal(0.2,0.02);
     gamma_max ~ uniform(0.0,1440.0/dt);
     //respiration ~ uniform(0.0,10.0);
     respiration ~ uniform(0.0,10.0);

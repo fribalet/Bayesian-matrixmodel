@@ -49,9 +49,9 @@ transformed data {
     }
 }
 parameters {
-    real<lower=0> delta_mu; 
-    real<lower=0> delta_sigma; 
-    real<lower=0> delta_max[m-j+1]; 
+    simplex[m-j+1] delta_max_frac; 
+    real<lower=0> delta_max_m;
+
     real<lower=0> delta_lightthresh;
     real<lower=0> delta_lightsigma;
     real<lower=0> gamma_max;
@@ -63,6 +63,7 @@ parameters {
 }
 transformed parameters {
     real divrate;
+    real delta_max[m-j+1]; 
     matrix[m,nt_obs] mod_obspos;
     vector<lower=0>[m] w_ini;  // initial conditions 
     {
@@ -75,7 +76,13 @@ transformed parameters {
         real rho;
         real x;
         int ito = 1;
-       
+      
+        // populate delta_max using delta_max_incr
+        delta_max[1] = delta_max_frac[1] * delta_max_m;
+        for (i in 1:m-j){
+            delta_max[i+1] = delta_max[i] + delta_max_frac[i] * delta_max_m;
+        }
+        
         for (i in 1:m){
             x = 0.5*(v[i]+v[i+1]) - v[1];
             w_ini[i] = exp(-(log(x)-w_ini_mu)^2/(2*w_ini_sigma^2 * pi()))/(x*w_ini_sigma*sqrt(2*pi()));
@@ -181,9 +188,11 @@ model {
     real popsum;
     
     // priors
-    delta_mu ~ normal(3.0, 1.0);
-    delta_sigma ~ exponential(1.0);
-    delta_max ~ normal(delta_mu, delta_sigma); // T[0.0,1440.0/dt];
+    
+    // delta_max for (last) size class m 
+    delta_max_m ~ normal(3.0,3.0);
+    delta_max_frac ~ dirichlet(rep_vector(10.0,m-j+1));
+    
     delta_lightthresh ~ normal(100.0,100.0);
     //delta_lightthresh ~ uniform(0.0,2000.0);
     delta_lightsigma ~ normal(0.2,0.02);

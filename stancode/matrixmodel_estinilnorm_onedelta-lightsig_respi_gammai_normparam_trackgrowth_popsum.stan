@@ -192,7 +192,7 @@ model {
     delta_max ~ normal(3.0, 1.0);
     //delta_lightthresh ~ normal(1000.0,1000.0);
     delta_lightthresh ~ uniform(0.0,2000.0);
-    delta_lightsigma ~ uniform(0.1,1.0);
+    delta_lightsigma ~ normal(0.2,0.02);
     gamma_max ~ uniform(0.0,1440.0/dt);
     xi ~ normal(0.0, 0.1);
     //respiration ~ uniform(0.0,10.0);
