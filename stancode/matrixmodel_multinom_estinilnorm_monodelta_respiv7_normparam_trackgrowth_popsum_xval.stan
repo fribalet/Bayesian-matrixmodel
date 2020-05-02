@@ -114,16 +114,16 @@ transformed parameters {
                 }
                 // compute gamma_i
                 if (xi > 0){
-                    sizelim = exp(xi*(v[i]-v[1]));
-                } else {
                     sizelim = exp(xi*(v[i]-v[m]));
+                } else {
+                    sizelim = exp(xi*(v[i]-v[1]));
                 }
                 gamma = gamma_max * sizelim * dt_norm * (1.0 - exp(-E[it]/E_star));
                 // compute rho_i
                 if (xir > 0){
-                    sizelim = exp(xir*(v[i]-v[1]));
-                } else {
                     sizelim = exp(xir*(v[i]-v[m]));
+                } else {
+                    sizelim = exp(xir*(v[i]-v[1]));
                 }
                 rho = respiration * sizelim * dt_norm;
                 
@@ -198,10 +198,10 @@ model {
     delta_lambda ~ exponential(3.0);
     delta_max_incr ~ exponential(delta_lambda);
     gamma_max ~ uniform(0.0,1440.0/dt);
-    xi ~ normal(0.0, 1.0);
+    xi ~ normal(0.0, 0.1);
+    xir ~ normal(0.0, 0.1);
     //respiration ~ uniform(0.0,10.0);
     respiration ~ uniform(0.0,10.0);
-    xir ~ normal(0.0, 1.0);
     E_star ~ normal(1000.0,1000.0);
     sigma_obssum ~ exponential(1000.0);
 
