@@ -327,6 +327,42 @@ We should look into whether we can model $w(t)$ these directly as
 compositions. I don't think this will be straightforward, or easy to write
 simply as a likelihood model.
 
+## Multinomial data model
+The Matrix Population Model (MPM) takes as input a time series of phytoplankton
+cell sizes. "Size" here is in units of $\mu m^{3},$ and is estimated from
+optical measurements. Though size is a continuous measurement, we discretize the
+measurement into $m \in \mathbb{N}$ size bins, where $m$ is a tuning parameter
+determined by the analyst. We have observations at $T$ time points, where each
+time point is typically one hour apart. Thus, the data is the matrix $X \in
+\mathbb{R}^{m \times T}$. The observation at time $t$ can be denoted
+
+$$X_{t}=\left(X_{1, t}, X_{2, t}, \ldots, X_{m, t}\right),$$
+
+where each $X_{i, t}
+\in \mathbb{Z}$ is the number of phytoplankton cells in size class $i$ at time
+$t .$ A natural approach to modeling this type of data is via a multinomial
+distribution: $$ X_{t} \sim \text { Multinomial }\left(\theta_{t}\right) $$
+where $\theta_{t}=\left(\theta_{1, t}, \theta_{2, t}, \ldots, \theta_{m,
+t}\right) \in \Delta^{m},$ where $\Delta^{m}$ is the space of $m$ -dimensional
+probability simplices.  However, this model assumes that we have observed the
+data directly, when in reality we have estimated the size distribution from
+optical measurements. Thus, we likely have overdispersion, which means the true
+underlying variance of our data is greater than what this simple model would
+suggest. One solution to this problem is to use a hierarchical model, where we
+treat the parameters $\theta_{t}$ as themselves being random. This serves to
+increase the marginal variance of the $X_{t}$ 's, thus more closely matching the
+increased variance in the data. This model could take the following form: $$
+\begin{aligned} X_{t} | \theta_{t}, \sigma & \sim \text { Multinomial
+}\left(\theta_{t}\right) \\ \theta_{t} | \sigma & \sim \text { Dirichlet
+}\left(\alpha_{t}\right) \\ \sigma & \sim \operatorname{Exp}(\lambda)
+\end{aligned} $$ where $\alpha_{t}=\sigma * \bar{\alpha}_{t}, \lambda \in
+\mathbb{R},$ and $\bar{\alpha}_{t} \in \Delta^{m} .$ Here, $\sigma$ is a
+dispersion parameter. The vectors $\bar{\alpha}_{t}$ are estimated as follows:
+1. Input: estimated projection matrices $\{\boldsymbol{A}(t)\}_{t=0}^{T-1},$ initial size distribution $\boldsymbol{w}(0)=\frac{X_{1}}{\left\|X_{1}\right\|_{1}}$
+2. $\operatorname{Obtain} \widehat{\boldsymbol{w}}(t)=\prod_{k=1}^{t-1} \boldsymbol{A}(k) \boldsymbol{w}(0)$
+3. $\operatorname{set} \bar{\alpha}_{t}=\frac{\boldsymbol{w}(t)}{\sqrt{\boldsymbol{w}(t) \|_{1}}}$
+
+## Log-ratio data model
 In the meantime, we need a way to link the observed size proportions $w(t)$ to
 those of our estimated $\hat w(t)$ (whose posterior sample we observe). One way
 is to perform a log ratio transform, with respect to one category. Let's say
@@ -347,9 +383,10 @@ not pathological, the transformed version seems closer to normal except for in
 the tails.
 
 
-```{r}
+```{r gen-pois}
 ## Generate a bunch of 3-length probabilities, from data. This is a weird
 ## potentially misleading example.
+set.seed(0)
 lambda = 100
 n = 3
 N = 1000
