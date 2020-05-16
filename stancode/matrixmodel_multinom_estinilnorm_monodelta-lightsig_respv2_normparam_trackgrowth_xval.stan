@@ -189,7 +189,7 @@ model {
     delta_lambda ~ exponential(3.0);
     delta_max_incr ~ exponential(delta_lambda);
  
-    delta_lightthresh ~ normal(100.0,100.0);
+    delta_lightthresh ~ normal(10.0,10.0);
     //delta_lightthresh ~ uniform(0.0,2000.0);
     delta_lightsigma ~ normal(0.2,0.02);
     gamma_max ~ uniform(0.0,1440.0/dt);
