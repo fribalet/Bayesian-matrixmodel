@@ -10,6 +10,7 @@ data {
     int<lower=0> delta_v_inv;  // inverse of delta_v 
     // observations
     real<lower=0,upper=nt*dt>  t_obs[nt_obs]; // the time of each observation
+    real<lower=0.0> obspopsum[nt_obs];
     real<lower=0> obs[m,nt_obs]; // observations
     int<lower=0> obs_count[m,nt_obs]; // count observations
     // for cross-validation
@@ -25,6 +26,7 @@ transformed data {
     int<lower=0> t[nt];     // vector of times in minutes since start 
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
+    real xi_max = 10.0;
 
     j = 1 + delta_v_inv; 
     delta_v = 1.0/delta_v_inv;
@@ -53,17 +55,18 @@ parameters {
     real<lower=0> delta_lambda; 
     real<lower=0> delta_max_incr[m-j+1]; 
     real<lower=0> gamma_max;
+    real<lower=-xi_max,upper=xi_max> xi;
+    real<lower=-xi_max,upper=xi_max> xir;
     real<lower=0> respiration; 
     real<lower=0, upper=5000> E_star; 
     real w_ini_mu;
     real<lower=0> w_ini_sigma;
-    real<lower=1e-10> sigma; 
-    simplex[m] theta[nt_obs];
+    real<lower=1e-10> sigma_obssum; 
 }
 transformed parameters {
     real divrate;
     real delta_max[m-j+1]; 
-    matrix[m,nt_obs] mod_obspos;
+    matrix<lower=0>[m,nt_obs] mod_obspos;
     vector<lower=0>[m] w_ini;  // initial conditions 
     {
         // helper variables
@@ -73,6 +76,8 @@ transformed parameters {
         real gamma;
         real a;
         real rho;
+        real tmp;
+        real sizelim;
         real x;
         int ito = 1;
       
@@ -101,21 +106,32 @@ transformed parameters {
                 }
             }
             
-            // compute gamma and rho
-            gamma = gamma_max * dt_norm * (1.0 - exp(-E[it]/E_star)) - respiration * dt_norm;
-            if (gamma > 0){
-                rho = 0.0;
-            } else {
-                rho = -gamma;
-                gamma = 0.0;
-            }
-
             w_next = rep_vector(0.0, m);
             for (i in 1:m){ // size-class loop
                 // compute delta_i
                 if (i >= j){
                     delta_i = delta_max[i-j+1] * dt_days;
                 }
+                // compute size-dependent gamma and rho
+                if (xi > 0){
+                    sizelim = exp(xi*(v[i]-v[m]));
+                } else {
+                    sizelim = exp(xi*(v[i]-v[1]));
+                }
+                gamma = dt_norm * sizelim * gamma_max * (1.0 - exp(-E[it]/E_star));
+                if (xir > 0){
+                    sizelim = exp(xir*(v[i]-v[m]));
+                } else {
+                    sizelim = exp(xir*(v[i]-v[1]));
+                }
+                gamma -= dt_norm * sizelim * respiration;
+                if (gamma > 0){
+                    rho = 0.0;
+                } else {
+                    rho = -gamma;
+                    gamma = 0.0;
+                }
+
                 
                 // fill superdiagonal (respiration)
                 if (i >= j){
@@ -179,18 +195,21 @@ transformed parameters {
     }
 }
 model {
-    vector[m] alpha;
-    
+    real diff;
+    real popsum;
+
     // priors
     
     // AR1 for delta_max
     delta_lambda ~ exponential(3.0);
     delta_max_incr ~ exponential(delta_lambda);
     gamma_max ~ uniform(0.0,1440.0/dt);
+    xi ~ normal(0.0, 0.1);
+    xir ~ normal(0.0, 0.1);
     //respiration ~ uniform(0.0,10.0);
     respiration ~ uniform(0.0,10.0);
-    E_star ~ normal(1000.0,1000.0);
-    sigma ~ exponential(0.01);
+    E_star ~ normal(1000.0/9.0,1000.0/9.0);
+    sigma_obssum ~ exponential(1000.0);
 
     w_ini_mu ~ normal(-3.0, 1.0);
     w_ini_sigma ~ uniform(0.03, 3.0);
@@ -198,9 +217,34 @@ model {
     // fitting observations
     for (it in 1:nt_obs){
         if(i_test[it] == 0){
-            alpha = mod_obspos[:,it]/sum(mod_obspos[:,it]) * sigma;
-            theta[it] ~ dirichlet(alpha);
-            obs_count[:,it] ~ multinomial(theta[it]);
+            obs_count[:,it] ~ multinomial(mod_obspos[:,it]/sum(mod_obspos[:,it]));
         }
     }
+    for (it in 1:nt_obs){
+        popsum = sum(mod_obspos[,it]);
+        diff = (popsum-obspopsum[it])/sigma_obssum;
+        diff ~ normal(0.0, 1.0);
+    }
 }
+/*
+generated quantities{
+    real log_like_test = 0;
+    {
+        real diff;
+        real popsum;
+
+        for(it in 1:nt_obs){
+            if(i_test[it] == 1){
+                diff = 0.0;
+                popsum = sum(mod_obspos[,it]);
+                for(iv in 1:m){
+                    diff += fabs(mod_obspos[iv,it]/popsum - obs[iv,it]);
+                }
+                diff = diff/sigma;
+                log_like_test += normal_lpdf(diff | 0.0, 1.0);
+            }
+        }
+        log_like_test = log_like_test/n_test;
+    }
+}
+*/
