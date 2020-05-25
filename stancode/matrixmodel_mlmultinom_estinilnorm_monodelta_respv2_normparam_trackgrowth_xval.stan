@@ -204,25 +204,3 @@ model {
         }
     }
 }
-/*
-generated quantities{
-    real log_like_test = 0;
-    {
-        real diff;
-        real popsum;
-
-        for(it in 1:nt_obs){
-            if(i_test[it] == 1){
-                diff = 0.0;
-                popsum = sum(mod_obspos[,it]);
-                for(iv in 1:m){
-                    diff += fabs(mod_obspos[iv,it]/popsum - obs[iv,it]);
-                }
-                diff = diff/sigma;
-                log_like_test += normal_lpdf(diff | 0.0, 1.0);
-            }
-        }
-        log_like_test = log_like_test/n_test;
-    }
-}
-*/

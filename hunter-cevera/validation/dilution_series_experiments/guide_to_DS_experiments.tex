@@ -1,0 +1,86 @@
+\documentclass[11pt]{article}
+\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb,amsfonts,amsmath}
+\usepackage{epstopdf}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\title{Guide to Dilution Series Experiments with FCB}
+
+\begin{document}
+\maketitle
+
+\section{the idea}
+To validate the matrix population model for `wild' \textit{Synechococcus} populations, the best would be to sample the cell size distributions with FCB alongside an alternative approach for measuring division rate: the gold standard of a dilution series. Eleven experiments took place during summer and fall of 2012. Some of these experiments ran two days as the goal was not to get the in situ division rate, but rather how the methods compared to each other. Details of experimental setup are in thesis or in PNAS paper, I believe. This document attempts to summarize what's in the notebook for any future use of the results of these experiments, such as for picoeukaryotes.
+
+There was a batch of experiments (1-6) during June 2012 and then another batch (7-11) during October 2012. The reason for the gap was that \textit{Synechococcus} cells were not growing well in the bottles for the summer, and a whole host of experiments were done to try to tease out why (nutrient limition, ad filters, bad dock water)- don't think I ever found the root cause. A heartening result was found in one of John Waterbury's papers that he could also not get \textit{Synechococus} to grow in a bottle during summer samples from Vineyard Sound. My secret hypothesis was that some organism (not being grazed for example) was producing something that the cyanos did not like and couldn't be dissipated as inside a bottle. At any rate, fortunately the \textit{Synechococcus} cells resumed their growth in the fall and were in high enough abundances 
+
+
+\section{some theory for interpretation}
+
+The theory goes that as whole seawater is diluted with filter seawater, the encounter rate between phytoplankton and their grazers will decrease such that the net growth rate observed in the more dilute bottles will be higher and closer to the intrinsic growth rate (division rate). If one extrapolates back to infinitely diluted seawater, this limit will be the division rate. However, there are some key assumptions in this approach, mainly that along the dilution range, this is still within a `linear' region of grazer ingestion curve. Often this assumption is violated, and it can be helpful to have a mathematical model to run through the different scenarios:
+
+The change in phytoplankton abundance over time can be represented as:
+
+\[
+\frac{dP}{dt}=(\mu-g)P,
+\]
+
+where $\mu$ is the intrinsic growth rate (division rate) and $g$ is the grazing rate, both in units of d$^{-1}$. The grazing rate can be thought of as:
+\[
+g = c \cdot z,
+\]
+where $c$ is the clearance rate is best thought of / more appropriate for filter-feeding cases, where there is a default max filtering capacity. It could also be thought of a `volume searched through' metric. $z$ refers to concentration of grazers. In units this becomes:
+
+\[
+\frac{1}{time} = \frac{vol}{indiv \cdot time} \cdot \frac{indiv}{vol}
+\]
+
+Ingestion rate is then defined as $I = c \cdot P$, such that $c = I / P$. Ingestion rate therefore has units of $(number \text{ } phytoplanton) / (indiv \text{ } grazer \cdot time)$, and is a more intuitive quantity. Can also have $I$ be represented as a functional response (i.e., ingestion pattern as a concentration of phytoplankton).
+
+ We can explore the outcome of different ingestion responses and saturation thresholds on phytoplankton-grazer dynamics with a set of differential equations. We can also write these equations in terms of the dilution experiments. The below equations are after Gallegos 1989.
+ 
+ We can rewrite the net growth rate that incorporates an ingestion response:
+ 
+ \begin{align}
+ r &= \mu -g = \mu-cZ \\
+ &= \mu - Z\frac{I}{P} = \mu - Z \frac{I(P)}{P}\\
+  \end{align}
+ 
+ For dilutions this becomes:
+ 
+ \[
+ r =\mu -Z_x\left[ \frac{I(P_x)}{P_x}\right]
+ \]
+ 
+ where the subscript $x$ refers to the dilution level. This can then be pulled out of the equations as:
+ 
+ \begin{align}
+ r &=\mu -Z_x\left[ \frac{I(P_x)}{P_x}\right] \\
+ r &= \mu - \frac{x\cdot Z_1}{x \cdot P_1}  \left[ I(P_x)\right] \\
+ r &= \mu - \frac{Z_1}{P_1}  \left[ I(P_x)\right]
+ \end{align}
+ 
+ We then use this expression in a standard set of differential equations:
+ 
+ \begin{align}
+ \frac{dP}{dt} &= (\mu - cZ) P =  \mu P - (I/P) Z P= \mu P - ZI \\
+ \frac{dZ}{dt} &= \psi ZI -mZ
+ \end{align}
+ where $I$ is actually the functional response, $m$ is mortality of the grazers and $\psi$ is a growth efficiency with units of grazer per phytoplankton ingested. Different ingestion responses and phytoplankton and zooplankton concentrations were used to see what type of dynamics could happen during an incubation and whether or not any of these patterns matched those of the observed!
+
+
+
+
+
+
+\section{the data: where is it, how to process, and how to plot it}
+
+%\subsection{}
+
+
+
+\end{document}  

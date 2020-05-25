@@ -1,0 +1,40 @@
+\documentclass[11pt]{article}
+\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{epstopdf}
+\usepackage{url}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\title{FCB3 benchtop data}
+%\date{}                                           % Activate to display a given date or no date
+
+\begin{document}
+\maketitle
+\section{what is the data?}
+\section{quality control}
+\subsection{indexing tiers...}
+
+The quality control for the benchtop data took several steps and resulted in tiers of indexes:
+
+culture_p2 / culture_p3 the data itself
+c2m2 / c2m3 -Aelxi's calls
+indtemp2 /ind temp3 - these are the ones!
+\subsection{location}
+
+Larger bulk data is archived in a few locations...
+
+Original model results, indexed and other data is located in \path{/Users/kristenhunter-cevera/Documents/MATLAB/Syn_division_rate_models/Fraction_Distribution_Model/Dirichlet_MN_model/Partial_hour_Dirichlet_MN_plateaugamma}
+
+Just \path{indexes_new.mat} and \path{benchtop_total_new.mat} seem to hold everything needed for the figure in PNAS paper
+
+\section{model setup and application}
+\section{useful figures}
+%\subsection{}
+
+
+
+\end{document}  
