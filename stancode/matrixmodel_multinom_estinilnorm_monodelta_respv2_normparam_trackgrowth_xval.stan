@@ -53,7 +53,7 @@ parameters {
     real<lower=0> delta_lambda; 
     real<lower=0> delta_max_incr[m-j+1]; 
     real<lower=0> gamma_max;
-    real<lower=0> respiration; 
+    real<lower=0> rho_max; 
     real<lower=0, upper=5000> E_star; 
     real w_ini_mu;
     real<lower=0> w_ini_sigma;
@@ -61,7 +61,7 @@ parameters {
 transformed parameters {
     real divrate;
     real delta_max[m-j+1]; 
-    matrix[m,nt_obs] mod_obspos;
+    matrix<lower=0>[m,nt_obs] mod_obspos;
     vector<lower=0>[m] w_ini;  // initial conditions 
     {
         // helper variables
@@ -100,7 +100,7 @@ transformed parameters {
             }
             
             // compute gamma and rho
-            gamma = gamma_max * dt_norm * (1.0 - exp(-E[it]/E_star)) - respiration * dt_norm;
+            gamma = gamma_max * dt_norm * (1.0 - exp(-E[it]/E_star)) - rho_max * dt_norm;
             if (gamma > 0){
                 rho = 0.0;
             } else {
@@ -183,8 +183,7 @@ model {
     delta_lambda ~ exponential(3.0);
     delta_max_incr ~ exponential(delta_lambda);
     gamma_max ~ uniform(0.0,1440.0/dt);
-    //respiration ~ uniform(0.0,10.0);
-    respiration ~ uniform(0.0,10.0);
+    rho_max ~ uniform(0.0,10.0);
     E_star ~ normal(1000.0,1000.0);
 
     w_ini_mu ~ normal(-3.0, 1.0);
