@@ -56,7 +56,7 @@ parameters {
     real<lower=0> gamma_max;
     real<lower=-xi_max,upper=xi_max> xi;
     real<lower=-xi_max,upper=xi_max> xir;
-    real<lower=0> respiration; 
+    real<lower=0> rho_max; 
     real<lower=0, upper=5000> E_star; 
     real w_ini_mu;
     real<lower=0> w_ini_sigma;
@@ -123,7 +123,7 @@ transformed parameters {
                 } else {
                     sizelim = exp(xir*(v[i]-v[1]));
                 }
-                rho = respiration * sizelim * dt_norm;
+                rho = rho_max * sizelim * dt_norm;
                 
                 // fill superdiagonal (respiration)
                 if (i >= j){
@@ -195,8 +195,7 @@ model {
     gamma_max ~ uniform(0.0,1440.0/dt);
     xi ~ normal(0.0, 0.1);
     xir ~ normal(0.0, 0.1);
-    //respiration ~ uniform(0.0,10.0);
-    respiration ~ uniform(0.0,10.0);
+    rho_max ~ uniform(0.0,10.0);
     E_star ~ normal(1000.0,1000.0);
 
     w_ini_mu ~ normal(-3.0, 1.0);
