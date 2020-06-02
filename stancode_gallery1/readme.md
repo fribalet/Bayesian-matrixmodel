@@ -27,6 +27,6 @@
 |`m7`     | monotonic   | ✓   | ✓   |     |     | `respiv7`                  |
 
 <a name="netfootnote">[1]</a> Growth and respiration cannot occur at the same time.
-<a name="versionfootnote">[2]</a> See [this notebook](sizedep_formulations.ipynb).
+<a name="versionfootnote">[2]</a> See [this notebook](/sizedep_formulations.ipynb).
 
 
