@@ -195,7 +195,7 @@ model {
     gamma_max ~ uniform(0.0,10.0);
     xi ~ normal(0.0, 0.1);
     xir ~ normal(0.0, 0.1);
-    rho_max ~ uniform(0.0,10.0);
+    rho_max ~ uniform(0.0,3.0);
     E_star ~ normal(1000.0,1000.0);
 
     w_ini_mu ~ normal(-3.0, 1.0);
