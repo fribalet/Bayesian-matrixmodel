@@ -2,7 +2,7 @@
 
 ## Notes:
  1. All code has been compiled but not all the models have been tested yet.
- 2. 2 models with light-dependent division will be added soon.
+ 2. 2 models with light-dependent have been added.
 
 ## The model versions contained in gallery1:
 `m1`:`matrixmodel_multinom_estinilnorm_freedelta_normparam_trackgrowth_xval.stan`
@@ -12,6 +12,8 @@
 `m5`:`matrixmodel_multinom_estinilnorm_monodelta_respv2_normparam_trackgrowth_xval.stan`
 `m6`:`matrixmodel_multinom_estinilnorm_monodelta_respiv6_normparam_trackgrowth_xval.stan`
 `m7`:`matrixmodel_multinom_estinilnorm_monodelta_respiv7_normparam_trackgrowth_xval.stan`
+`m8`:`matrixmodel_multinom_estinilnorm_monodelta-lightsig_respiv6_normparam_trackgrowth_xval.stan`
+`m9`:`matrixmodel_multinom_estinilnorm_monodelta-lightsig_respiv7_normparam_trackgrowth_xval.stan`
 
 ## What all models have in common:
  * All models estimate the initial conditions the same way.
@@ -29,8 +31,13 @@
 |`m5`     | monotonic   | ✓   |     |     | ✓   | `respv2`                   |
 |`m6`     | monotonic   | ✓   | ✓   |     | ✓   | `respiv6`                  |
 |`m7`     | monotonic   | ✓   | ✓   |     |     | `respiv7`                  |
+|`m8`     | monotonic   | ✓   | ✓   | ✓   | ✓   | `respiv6`                  |
+|`m9`     | monotonic   | ✓   | ✓   | ✓   |     | `respiv7`                  |
 
 <a name="netfootnote">[1]</a> Growth and respiration cannot occur at the same time.
+
 <a name="versionfootnote">[2]</a> See [this notebook](/sizedep_formulations.ipynb).
 
+## Initial tests
 
+ * Initial results of models `m1` to `m7` are presented in [this notebook](/experimental/experimental_zinser_seaflow_20200602_gallery1_test.ipynb)
