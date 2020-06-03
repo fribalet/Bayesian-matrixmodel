@@ -1,9 +1,5 @@
 # Model description
 
-## Notes:
- 1. All code has been compiled but not all the models have been tested yet.
- 2. 2 models with light-dependent have been added.
-
 ## The model versions contained in gallery1:
 `m1`:`matrixmodel_multinom_estinilnorm_freedelta_normparam_trackgrowth_xval.stan`
 `m2`:`matrixmodel_multinom_estinilnorm_monodelta_normparam_trackgrowth_xval.stan`
@@ -22,7 +18,7 @@
 
 ## Model differences:
 
-| version | `delta_max` | respiration  | size-dep growth | light-dep division | using net growth <sup>[\[1\]](#netfootnote) | growth/respiration version <sup>[\[2\]](#versionfootnote) |
+| version | `delta_max` | using respiration  | size-dep growth | light-dep division | using net growth <sup>[\[1\]](#netfootnote) | growth/respiration version <sup>[\[2\]](#versionfootnote) |
 | ------- | ----------  | --- | --- | --- | --- | -------------------------- |
 |`m1`     | free        |     |     |     |     | basic                      |
 |`m2`     | monotonic   |     |     |     |     | basic                      |
@@ -40,4 +36,5 @@
 
 ## Initial tests
 
- * Initial results of models `m1` to `m7` are presented in [this notebook](/experimental/experimental_zinser_seaflow_20200602_gallery1_test.ipynb)
+ * Initial results of models `m1` to `m7` are presented in [this notebook](/experimental/experimental_zinser_seaflow_20200602_gallery1_test.ipynb).
+ * A rerun of the same notebook but `m8` and `m9` included is presented [here](/experimental/experimental_zinser_seaflow_20200603_gallery1_test2.ipynb).
