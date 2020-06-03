@@ -1,5 +1,9 @@
 # Model description
 
+## Notes:
+ 1. All code has been compiled but not all the models have been tested yet.
+ 2. 2 models with light-dependent division will be added soon.
+
 ## The model versions contained in gallery1:
 `m1`:`matrixmodel_multinom_estinilnorm_freedelta_normparam_trackgrowth_xval.stan`
 `m2`:`matrixmodel_multinom_estinilnorm_monodelta_normparam_trackgrowth_xval.stan`
