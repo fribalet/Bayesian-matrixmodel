@@ -1,5 +1,8 @@
 # Model description
 
+## Notes
+ * Version `m10` (`m5` with size-dep growth) was added because `m5` performed well in some tests.
+
 ## The model versions contained in gallery1:
 `m1`:`matrixmodel_multinom_estinilnorm_freedelta_normparam_trackgrowth_xval.stan`
 `m2`:`matrixmodel_multinom_estinilnorm_monodelta_normparam_trackgrowth_xval.stan`
@@ -10,6 +13,7 @@
 `m7`:`matrixmodel_multinom_estinilnorm_monodelta_respiv7_normparam_trackgrowth_xval.stan`
 `m8`:`matrixmodel_multinom_estinilnorm_monodelta-lightsig_respiv6_normparam_trackgrowth_xval.stan`
 `m9`:`matrixmodel_multinom_estinilnorm_monodelta-lightsig_respiv7_normparam_trackgrowth_xval.stan`
+`m10`:`matrixmodel_multinom_estinilnorm_monodelta-lightsig_respv2_normparam_trackgrowth_xval.stan`
 
 ## What all models have in common:
  * All models estimate the initial conditions the same way.
@@ -29,6 +33,7 @@
 |`m7`     | monotonic   | ✓   | ✓   |     |     | `respiv7`                  |
 |`m8`     | monotonic   | ✓   | ✓   | ✓   | ✓   | `respiv6`                  |
 |`m9`     | monotonic   | ✓   | ✓   | ✓   |     | `respiv7`                  |
+|`m10`    | monotonic   | ✓   |     | ✓   | ✓   | `respv2`                   |
 
 <a name="netfootnote">[1]</a> Growth and respiration cannot occur at the same time.
 
