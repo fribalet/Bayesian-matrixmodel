@@ -22,18 +22,18 @@
 
 ## Model differences:
 
-| version | `delta_max` | using respiration  | size-dep growth | light-dep division | using net growth <sup>[\[1\]](#netfootnote) | growth/respiration version <sup>[\[2\]](#versionfootnote) |
-| ------- | ----------  | --- | --- | --- | --- | -------------------------- |
-|`m1`     | free        |     |     |     |     | basic                      |
-|`m2`     | monotonic   |     |     |     |     | basic                      |
-|`m3`     | monotonic   |     | ✓   |     |     | `gammaiv6`                 |
-|`m4`     | monotonic   | ✓   |     |     |     | `respv1`                   |
-|`m5`     | monotonic   | ✓   |     |     | ✓   | `respv2`                   |
-|`m6`     | monotonic   | ✓   | ✓   |     | ✓   | `respiv6`                  |
-|`m7`     | monotonic   | ✓   | ✓   |     |     | `respiv7`                  |
-|`m8`     | monotonic   | ✓   | ✓   | ✓   | ✓   | `respiv6`                  |
-|`m9`     | monotonic   | ✓   | ✓   | ✓   |     | `respiv7`                  |
-|`m10`    | monotonic   | ✓   |     | ✓   | ✓   | `respv2`                   |
+| version | `delta_max` | using respiration | size-dep respiration | size-dep growth | light-dep division | using net growth <sup>[\[1\]](#netfootnote) | growth/respiration version <sup>[\[2\]](#versionfootnote) |
+| ------- | ----------  | --- | --- | --- | --- | --- | -------------------------- |
+|`m1`     | free        |     |     |     |     |     | basic                      |
+|`m2`     | monotonic   |     |     |     |     |     | basic                      |
+|`m3`     | monotonic   |     |     | ✓   |     |     | `gammaiv6`                 |
+|`m4`     | monotonic   | ✓   |     |     |     |     | `respv1`                   |
+|`m5`     | monotonic   | ✓   |     |     |     | ✓   | `respv2`                   |
+|`m6`     | monotonic   | ✓   | ✓   | ✓   |     | ✓   | `respiv6`                  |
+|`m7`     | monotonic   | ✓   | ✓   | ✓   |     |     | `respiv7`                  |
+|`m8`     | monotonic   | ✓   | ✓   | ✓   | ✓   | ✓   | `respiv6`                  |
+|`m9`     | monotonic   | ✓   | ✓   | ✓   | ✓   |     | `respiv7`                  |
+|`m10`    | monotonic   | ✓   |     |     | ✓   | ✓   | `respv2`                   |
 
 <a name="netfootnote">[1]</a> Growth and respiration cannot occur at the same time.
 
@@ -42,4 +42,4 @@
 ## Initial tests
 
  * Initial results of models `m1` to `m7` are presented in [this notebook](/experimental/experimental_zinser_seaflow_20200602_gallery1_test.ipynb).
- * A rerun of the same notebook but `m8` and `m9` included is presented [here](/experimental/experimental_zinser_seaflow_20200603_gallery1_test2.ipynb).
+ * A rerun of the same notebook but with `m8` and `m9` included is presented [here](/experimental/experimental_zinser_seaflow_20200603_gallery1_test2.ipynb).
