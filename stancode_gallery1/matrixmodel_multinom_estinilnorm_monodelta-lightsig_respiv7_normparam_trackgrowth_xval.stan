@@ -113,7 +113,7 @@ transformed parameters {
                     if (E[it] < delta_lightthresh){
                         delta_i = delta_max[i-j+1] * dt_days;
                     } else {
-                        delta_i = delta_max[i-j+1] * dt_days * exp(-((E[it]-delta_lightthresh)/(2200.0*delta_lightsigma))^2);
+                        delta_i = delta_max[i-j+1] * dt_days * exp(-((E[it]-delta_lightthresh)/(100.0*delta_lightsigma))^2);
                     }
                 }
                 // compute gamma_i
