@@ -4,7 +4,7 @@
 
 **These changes are contained in the file** `matrixmodel_mlmultinom_estinilnorm2_monodelta2_respv2_normparam_trackgrowth_xval2.stan`.
 
-Python code can be found in `experimental_zinser_seaflow_20200616_gallery1_mlmn_truecount.ipynb` (uncompiled) and `experimental_zinser_seaflow_20200616_gallery1_mlmn_truecount.ipynb`.
+Python code can be found in `experimental_zinser_seaflow_20200616_gallery1_mlmn_truecount.ipynb` (uncompiled) and `experimental_zinser_seaflow_20200616_gallery1_mlmn_truecount.py`.
 
 ### INITIAL SIZE DISTRIBUTION:
 Changed estimation of initial size distribution:
