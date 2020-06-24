@@ -1,0 +1,228 @@
+---
+title: "Training and test indices for SeaFlow data"
+author: "Gregory Britten and Kristof Glauninger and Sangwon (Justin) Hyun"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE,
+                      message=FALSE, eval=TRUE, cache=TRUE,
+                      fig.width=20, fig.height=20)
+```
+
+Load packages and set the working directory.
+
+```{r more-setup}
+library(ncdf4)
+library(viridis)
+library(fields)
+library(rstan)
+options(mc.cores = parallel::detectCores())
+## setwd('d:/dropbox/working/bayesian-matrixmodel/')
+repodir = '/Users/kristof/git_environment/Bayesian-matrixmodel/' ## The directory of your repository.
+setwd(repodir)
+```
+
+# Visualize SeaFlow data
+
+Take the example SeaFlow data. This data is collected from the LaGrangian cruise KM 1513. In the top plot, there are $m=15$ size categories, and $t=0, \cdots, 1742$ time points -- 1743 time points at 3-minute increments over about four days. For validation purposes, we will only use the first day of data. The colors and thickness of each line shows, from blue+thin to red+thick, the small to large size classes. The sunlight `par` variable is overlaid (out of scale) as well.
+
+```{r retrieve-data-helper}
+##' Helper to open SeaFlow data.
+##' @param filename NC file filename, like
+##'   \code{"data/SeaFlow_SizeDist_regrid-15-5.nc"}.
+##' @return List containing data \code{obs} (T x m matrix), \code{time} (T
+##'   length list of minutes passed since the beginning), \code{num_sizeclass}
+##'   (Number of size classes, or m), and \code{v} (left-hand-side border of
+##'   size classes).
+open_zinser <- function(filename = "SeaFlow_SizeDist_regrid-15-5.nc",
+                        datadir = "data"){
+  
+  ## Read data.
+  ## "data/SeaFlow_SizeDist_regrid-15-5.nc"
+  nc <- nc_open(file.path(datadir, filename))
+  
+  ## Time (in number of minutes since the beginning)
+  time  <- ncvar_get(nc,'time')
+  one_day <- (time <= 24*60)
+  time <- time[one_day]
+  
+  PAR   <- ncvar_get(nc,'PAR')[one_day] ## Sunlight
+  w_obs <- ncvar_get(nc,'w_obs')[one_day,] ## Data
+
+  ## List variables in the nc file.
+  names(nc$var)
+  
+  ## What are these?
+  m <- ncvar_get(nc,'m') ## Number of size classes
+  
+  ## Size classes
+  delta_v_inv <- ncvar_get(nc,'delta_v_inv')
+  v_min       <- ncvar_get(nc,'v_min')
+  delta_v <- 1/delta_v_inv
+  v <- v_min * 2^(((1:m) - 1) * delta_v)
+
+  ## Name of w_obs
+  rownames(w_obs) = time
+  colnames(w_obs) = v
+
+  ## Return
+  return(list(obs = w_obs,
+              time = time,
+              num_sizeclass = m,
+              v = v,
+              nc = nc,
+              PAR = PAR))
+}
+```
+
+The bottom plot is also another version of the data at a different number of
+size classes. There are more size categories (25 of them), and the same
+number of time points.
+
+```{r plot, fig.width=14, fig.height=7}
+## Retrieve data
+for(filename in c("SeaFlow_SizeDist_regrid-15-5.nc",
+                  "SeaFlow_SizeDist_regrid-25-8.nc")){
+
+  ## Load data
+  dat = open_zinser(filename)
+  
+  ## Plot SeaFlow data.
+  ncat = ncol(dat$obs) ## alternatively, ncat = dat$num_sizeclass
+  cols = colorRamps::blue2red(ncat)
+  ylim = range(dat$obs)
+  matplot(dat$obs, col = cols, lwd = seq(from = 0.1, to = 5, length = ncat),
+          lty = 1, type = 'l', ylab = "", xlab = "")
+  title(main = paste0("SeaFlow data, ", ncat, " size classes"))
+
+
+  ## Making i_test
+  # d = 3
+  #i_test = rep(0, length(dat$time))
+  #i_test[seq(from=d, to=length(dat$time), by=d)] = 1
+  bool = ((dat$time %/% 60) %% 3 == 2)
+  i_test = ifelse(bool, 1, 0)
+
+  ## Add grey regions for the time points that we're going to leave out.
+  cex = 1
+  abline(v = which(i_test == 1), col='grey', lwd=3, lty=1)
+  for(ii in which(i_test == 1)){
+    points(x=rep(ii, dat$num_sizeclass), y=dat$obs[ii,], pch=16, col="grey", cex=cex)
+    points(x=rep(ii, dat$num_sizeclass), y=dat$obs[ii,], pch=16, col="white", cex=cex * 0.7)
+    points(x=rep(ii, dat$num_sizeclass), y=dat$obs[ii,], pch=1, col="grey", cex=cex)
+  }
+  
+  ## Add sunlight
+  scpar = scale(dat$PAR)
+  scpar = scpar - min(scpar)
+  scpar = scpar / max(scpar) * max(dat$obs)
+  lines(scpar, lwd = 5)
+
+  ## Add legend
+  legend("topright", lwd=3, col='grey', pch=1, legend="Test data")
+}
+```
+
+# Training and test indices for Zinser data
+
+The `i_test` variable is a numeric vector which contains 0's an 1's, and the time points left out shown the grey vertical lines (and empty grey points). The validation set is constructed so that every third hour is in the test set, and the remaining data are in the training set. Thus, 8 out of the 24 hours are used for testing, and 16 out of 24 are used for training.
+
+We'll save these indices in either an `.Rdata` file or a `.csv` file, each named:
+
+`"SeaFlow_SizeDist_regrid-15-5-itest.Rdata"`
+`"SeaFlow_SizeDist_regrid-15-5-itest.csv`
+`"SeaFlow_SizeDist_regrid-25-8-itest.Rdata"`
+`"SeaFlow_SizeDist_regrid-25-8-itest.csv"`
+
+These files are written into the `data` directory:
+
+
+```{r write-itest}
+filenames = c("SeaFlow_SizeDist_regrid-15-5",
+              "SeaFlow_SizeDist_regrid-25-8")
+for(filename in filenames){
+  dat = open_zinser(paste0(filename, ".nc"))
+  datadir = file.path(repodir, "data")
+  save(i_test, file = file.path(datadir, paste0(filename, "-itest.Rdata")))
+  write.table(i_test, file = file.path(datadir, paste0(filename, "-itest.csv")),
+              row.names = FALSE, col.names = FALSE)
+}
+ 
+## Reading it in:
+i_test = unlist(read.csv(file = file.path(datadir, paste0(filenames[1], "-itest.csv")),
+                        header = FALSE))
+```
+
+# Stan code for model fitting
+
+Lastly, using this vector `itest`, from now on, **you should experiment on model
+variations only on the training points**, and **evaluate on the test
+points**. Compared to existing scripts, the key difference is in the use of
+variable `log_like_test` -- we are explicitly looking for models that yield
+higher out-of-sample likelihoods.
+
+Here is roughly what to do in Stan. In fitting (training), only the training
+points `i_test[it]==0` are used. In calculating the test score, use only the
+time points for which `i_test[it]==1`.
+
+
+
+```{eval=FALSE}
+model {
+    real diff;
+    
+    // priors
+    delta_max ~ uniform(0.0,1440.0/dt); // T[0.0,1440.0/dt];
+    gamma_max ~ uniform(0.0,1440.0/dt);
+    E_star ~ normal(3000.0,10.0);
+    sigma ~ exponential(1000.0);
+
+    // fitting observations
+    for (it in 1:nt_obs){
+        diff = 0.0;
+		if(i_test[it]== 0){
+        for (iv in 1:m){
+            diff += fabs(mod_obspos[iv,it] - obs[iv,it]);
+        }
+        diff = diff/sigma;
+        diff ~ normal(0.0, 1.0) T[0,];
+    }
+	}
+}
+generated quantities{
+	real log_like_test = 0; 
+	{real diff;
+	for(it in 1:nt_obs){
+		if(i_test[it] == 1){
+			diff = 0.0;
+			for(iv in 1:m){
+				diff += fabs(mod_obspos[iv,it] - obs[iv,it]);
+			}
+			diff = diff/sigma;
+			log_like_test += normal_lpdf(diff | 0.0, 1.0);
+		}
+	}
+	log_like_test = log_like_test/n_test;
+	}
+}
+
+```
+
+
+# Other notes
+
+1. Sosik model evaluation is fishy (one-hour-long iterations, using previous
+   hour's *real* data and not the model)
+
+2. How to rerun Sosik model to get fairer model fit? This is in order to
+   compare our model to theirs.
+
+# References
+* Zinser 2009 paper: https://github.com/fribalet/Bayesian-matrixmodel/blob/master/papers/journal.pone.0005135-2.PDF or https://www.dropbox.com/s/tsqmyz8sqr8mpj7/sosik-2003.pdf?dl=0
+
+* Sosik 2003 paper: https://www.dropbox.com/s/wb4732l3lzjqrz7/zinser-2009.PDF?dl=0
