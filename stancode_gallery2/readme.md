@@ -1,7 +1,7 @@
 # Model description
 
 ## Notes
- * Code compiles but is otherwise untested, **do not use yet**.
+ * Code compiles and converges well in initial tests.
 
 ## The model versions contained in gallery1:
 `m1`:`matrixmodel_mlmultinom_estinilnorm2_freedelta_normparam_trackgrowth_xval2.stan`
@@ -41,4 +41,4 @@
 
 ## Initial tests
 
- * Tests are underway.
+ * Initial tests of models `m1` to `m10` shown in [this notebook](/experimental/exp_zs_20200624_gallery2_test.ipynb).
