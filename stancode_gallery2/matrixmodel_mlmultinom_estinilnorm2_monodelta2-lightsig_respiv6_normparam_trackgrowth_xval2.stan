@@ -14,6 +14,7 @@ data {
     int<lower=0> obs_count[m,nt_obs]; // count observations
     // for cross-validation
     int<lower=0, upper=1> i_test[nt_obs];
+    int prior_only;
 }
 transformed data {
     int j;
@@ -206,11 +207,13 @@ model {
     delta_lightsigma ~ normal(0.2,0.02);
 
     // fitting observations
-    for (it in 1:nt_obs){
-        if(i_test[it] == 0){
-            alpha = mod_obspos[:,it]/sum(mod_obspos[:,it]) * sigma + 1;
-            theta[it] ~ dirichlet(alpha);
-            obs_count[:,it] ~ multinomial(theta[it]);
+    if (prior_only == 0){
+        for (it in 1:nt_obs){
+            if(i_test[it] == 0){
+                alpha = mod_obspos[:,it]/sum(mod_obspos[:,it]) * sigma + 1;
+                theta[it] ~ dirichlet(alpha);
+                obs_count[:,it] ~ multinomial(theta[it]);
+            }
         }
     }
 }
