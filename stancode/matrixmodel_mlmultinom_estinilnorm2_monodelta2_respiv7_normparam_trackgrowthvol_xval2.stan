@@ -76,7 +76,6 @@ transformed parameters {
     real divrate;
     real<lower=0, upper=1.0/dt_days> delta[m-j+1];
     matrix<lower=0>[m,nt_obs] mod_obspos;
-    vector<lower=0>[m] w_ini;  // initial conditions 
     real<lower=0> resp_vol_loss[nt];    // record volume loss due to respiration
     real<lower=0> growth_vol_gain[nt];  // record volume gain due to cell growth
     real<lower=0> total_vol[nt];        // record total volume
