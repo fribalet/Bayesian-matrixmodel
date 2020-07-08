@@ -14,6 +14,10 @@
 `m8`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_respiv6_normparam_trackgrowth_xval2.stan`
 `m9`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_respiv7_normparam_trackgrowth_xval2.stan`
 `m10`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_respv2_normparam_trackgrowth_xval2.stan`
+`m11`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_resp_gammaiv6_normparam_trackgrowth_xval2.stan`
+`m12`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_resp_gammaiv7_normparam_trackgrowth_xval2.stan`
+`m13`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_resp_gammaiv6_normparam_trackgrowth_xval2.stan`
+`m14`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_resp_gammaiv7_normparam_trackgrowth_xval2.stan`
 
 ## What all models have in common:
  * All models estimate the initial conditions the same way.
@@ -34,6 +38,10 @@
 |`m8`     | monotonic   | ✓   | ✓   | ✓   | ✓   | ✓   | `respiv6`                  |
 |`m9`     | monotonic   | ✓   | ✓   | ✓   | ✓   |     | `respiv7`                  |
 |`m10`    | monotonic   | ✓   |     |     | ✓   | ✓   | `respv2`                   |
+|`m11`    | monotonic   | ✓   |     | ✓   |     | ✓   | `resp_gammaiv6`            |
+|`m12`    | monotonic   | ✓   |     | ✓   |     |     | `resp_gammaiv7`            |
+|`m13`    | monotonic   | ✓   |     | ✓   | ✓   | ✓   | `resp_gammaiv6`            |
+|`m14`    | monotonic   | ✓   |     | ✓   | ✓   |     | `resp_gammaiv7`            |
 
 <a name="netfootnote">[1]</a> Growth and respiration cannot occur at the same time.
 
