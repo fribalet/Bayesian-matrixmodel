@@ -104,7 +104,7 @@ transformed parameters {
             }
 
             // compute current tau_t
-            tau_t = tau[(t[it]%1440)/120+1]
+            tau_t = tau[(t[it]%1440)/120+1];
             
             w_next = rep_vector(0.0, m);
             for (i in 1:m){ // size-class loop
@@ -195,7 +195,7 @@ model {
     
     tau_mu ~ normal(1.0, 0.1) T[0.0,1.0];
     tau_sigma ~ exponential(1.0);
-    tau ~ normal(delta_mu, delta_sigma) T[0.0,1.0];
+    tau ~ normal(tau_mu, tau_sigma) T[0.0,1.0];
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
     rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
