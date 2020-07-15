@@ -219,7 +219,7 @@ model {
     
     tau_mu ~ normal(1.0, 0.1) T[0.0,1.0];
     tau_sigma ~ exponential(1.0);
-    tau ~ normal(tau_mu, tau_sigma) T[0.0,1.0];
+    tau ~ normal(tau_mu, tau_sigma);
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
     rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
