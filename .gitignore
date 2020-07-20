@@ -3,3 +3,5 @@
 .ipynb_checkpoints
 **/npz/*.pdf
 *_cache
+parameter_plots/fit_m*
+parameter_plots/prior*
