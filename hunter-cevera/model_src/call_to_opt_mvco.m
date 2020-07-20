@@ -18,7 +18,7 @@ data = 'zinser';
 if strcmp(data, 'zinser')
     hr1 = 1; hr2 = 49; % for Pro there is no restriction on division
     dt = 1/3;  % value we use for the Zinser data and the Bayesian model
-    obstimes = 1:2:hr2; % specify the time associated with each observation
+    obstimes = 1:hr2; % specify the time associated with each observation
 else
     hr1 = 7; hr2 = 25; % for Syn we assume no division for 6 hours
     dt = 1/6; % typical value used in most literature
@@ -41,7 +41,7 @@ tolvec=[0.01 0.01 100 0.005 0.01 0.01 100 0.005 0.01 0.5 0.5 0.5 0.5 10];
 if strcmp(data, 'zinser')
     eval(['pathname=''~/git_environment/Bayesian-matrixmodel/hunter-cevera/zinser/data/'';']) % Zinser data
     eval(['savepath=''~/git_environment/Bayesian-matrixmodel/hunter-cevera/zinser/output/'';']) % Zinser model output
-    filelist = dir([pathname 'Zinser_data.mat']); % Zinser data
+    filelist = dir([pathname 'Zinser_data_1hr.mat']); % Zinser data
 else
     eval(['pathname=''~/git_environment/Bayesian-matrixmodel/hunter-cevera/example/data/'';']) % Simulated data
     eval(['savepath=''~/git_environment/Bayesian-matrixmodel/hunter-cevera/example/output/'';']) % Simulated model output

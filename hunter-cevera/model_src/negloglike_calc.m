@@ -99,7 +99,7 @@ for t=1:q
 end
 
 if save_flag
-    file = strcat(savepath, 'fitted.csv');
+    file = strcat(savepath, 'fitted2.csv');
     writematrix(simdist, file);
 end
 %% Now calculate the log likelihood using the Dirichlet Multinomial distribution: %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
