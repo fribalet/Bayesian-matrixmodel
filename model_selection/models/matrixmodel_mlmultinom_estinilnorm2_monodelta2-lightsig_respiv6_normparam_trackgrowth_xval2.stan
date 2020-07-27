@@ -60,6 +60,8 @@ parameters {
     real<lower=1e-10> sigma; 
     real<lower=-xi_max,upper=xi_max> xi;
     real<lower=-xi_max,upper=xi_max> xir;
+    real<lower=0> delta_lightthresh;
+    real<lower=0> delta_lightsigma;
     simplex[m] theta[nt_obs];
     simplex[m] w_ini;  // initial conditions
 }
@@ -103,22 +105,31 @@ transformed parameters {
             for (i in 1:m){ // size-class loop
                 // compute delta_i
                 if (i >= j){
-                    delta_i = delta[i-j+1] * dt_days;
+                    if (E[it] < delta_lightthresh){
+                        delta_i = delta[i-j+1] * dt_days;
+                    } else {
+                        delta_i = delta[i-j+1] * dt_days * exp(-((E[it]-delta_lightthresh)/(100.0*delta_lightsigma))^2);
+                    }
                 }
-                // compute gamma_i
+                // compute size-dependent gamma and rho
                 if (xi > 0){
                     sizelim = exp(xi*(v[i]-v[m]));
                 } else {
                     sizelim = exp(xi*(v[i]-v[1]));
                 }
-                gamma = gamma_max * sizelim * dt_norm * (1.0 - exp(-E[it]/E_star));
-                // compute rho_i
+                gamma = dt_norm * sizelim * gamma_max * (1.0 - exp(-E[it]/E_star));
                 if (xir > 0){
                     sizelim = exp(xir*(v[i]-v[m]));
                 } else {
                     sizelim = exp(xir*(v[i]-v[1]));
                 }
-                rho = rho_max * sizelim * dt_norm;
+                gamma -= dt_norm * sizelim * rho_max;
+                if (gamma > 0){
+                    rho = 0.0;
+                } else {
+                    rho = -gamma;
+                    gamma = 0.0;
+                }
                 
                 // fill superdiagonal (respiration)
                 if (i >= j){
@@ -192,6 +203,8 @@ model {
     sigma ~ lognormal(1000.0, 1000.0) T[1,];
     xi ~ normal(0.0, 0.1);
     xir ~ normal(0.0, 0.1);
+    delta_lightthresh ~ normal(10.0,10.0);
+    delta_lightsigma ~ normal(0.2,0.02);
 
     // fitting observations
     if (prior_only == 0){
@@ -204,3 +217,10 @@ model {
         }
     }
 }
+generated quantities {
+	vector[nt_obs] log_lik;
+	for(it in 1:nt_obs){
+		log_lik[it] = multinomial_lpmf(obs_count[:,it] | theta[it]);
+	}
+}
+

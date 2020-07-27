@@ -51,9 +51,10 @@ transformed data {
     }
 }
 parameters {
-    real<lower=0> delta_mu; 
-    real<lower=0> delta_sigma; 
-    real<lower=0,upper=1.0/dt_days> delta[m-j+1]; 
+    simplex[m-j+1] delta_incr;
+    real<lower=0, upper=1.0/dt_days> delta_max;
+    real<lower=0> delta_lightthresh;
+    real<lower=0> delta_lightsigma;
     real<lower=0,upper=1.0/dt_norm> gamma_max;
     real<lower=0,upper=1.0/dt_norm> rho_max; 
     real<lower=0, upper=5000> E_star; 
@@ -63,7 +64,9 @@ parameters {
 }
 transformed parameters {
     real divrate;
+    real<lower=0, upper=1.0/dt_days> delta[m-j+1];
     matrix<lower=0>[m,nt_obs] mod_obspos;
+    //vector<lower=0>[m] w_ini;  // initial conditions
     {
         // helper variables
         vector[m] w_curr; 
@@ -75,6 +78,12 @@ transformed parameters {
         real x;
         int ito = 1;
       
+        // populate delta using delta_incr
+        delta[1] = delta_incr[1] * delta_max;
+        for (i in 1:m-j){
+            delta[i+1] = delta[i] + delta_incr[i+1] * delta_max;
+        }
+        
         w_curr = w_ini;
 
         for (it in 1:nt){ // time-stepping loop
@@ -88,16 +97,24 @@ transformed parameters {
                 }
             }
             
-            // compute gamma
-            gamma = gamma_max * dt_norm * (1.0 - exp(-E[it]/E_star));
-            // set rho to zero (no respiration)
-            rho = 0.0;
+            // compute gamma and rho
+            gamma = gamma_max * dt_norm * (1.0 - exp(-E[it]/E_star)) - rho_max * dt_norm;
+            if (gamma > 0){
+                rho = 0.0;
+            } else {
+                rho = -gamma;
+                gamma = 0.0;
+            }
 
             w_next = rep_vector(0.0, m);
             for (i in 1:m){ // size-class loop
                 // compute delta_i
                 if (i >= j){
-                    delta_i = delta[i-j+1] * dt_days;
+                    if (E[it] < delta_lightthresh){
+                        delta_i = delta[i-j+1] * dt_days;
+                    } else {
+                        delta_i = delta[i-j+1] * dt_days * exp(-((E[it]-delta_lightthresh)/(100.0*delta_lightsigma))^2);
+                    }
                 }
                 
                 // fill superdiagonal (respiration)
@@ -166,13 +183,12 @@ model {
     
     // priors
     
-    delta_mu ~ normal(3.0, 1.0);
-    delta_sigma ~ exponential(1.0);
-    delta ~ normal(delta_mu, delta_sigma);
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
     rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
     sigma ~ lognormal(1000.0, 1000.0) T[1,];
+    delta_lightthresh ~ normal(10.0,10.0);
+    delta_lightsigma ~ normal(0.2,0.02);
 
     // fitting observations
     if (prior_only == 0){
@@ -185,3 +201,10 @@ model {
         }
     }
 }
+generated quantities {
+	vector[nt_obs] log_lik;
+	for(it in 1:nt_obs){
+		log_lik[it] = multinomial_lpmf(obs_count[:,it] | theta[it]);
+	}
+}
+
