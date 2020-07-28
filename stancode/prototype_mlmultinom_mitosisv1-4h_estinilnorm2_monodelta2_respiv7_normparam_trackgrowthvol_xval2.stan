@@ -23,10 +23,15 @@ transformed data {
     real<lower=0> dt_days;  // dt in units of days
     real<lower=0> dt_norm;  // dt in units of days and doublings
     real<lower=0> v[m+1];   // vector of (minimum) sizes for each size class
+    row_vector[m] v_mid;    // vector of sizes for each size class
+    real<lower=0> v_diff[m-1];// vector of size-differences for first m-1 size classes
     int<lower=0> t[nt];     // vector of times in minutes since start 
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
     real xi_max = 10.0;
+    int mitosis_maxlen_min = 4*60; // maximum length of mitosis in units of minutes
+    int nt_mitosis = mitosis_maxlen_min/dt;
+    real zeta_offset = 100000.0; // large value in prototype
 
     j = 1 + delta_v_inv; 
     delta_v = 1.0/delta_v_inv;
@@ -36,6 +41,13 @@ transformed data {
         v[i] = v_min*2^((i-1)*delta_v);
     }
     v_max = v[m];
+    for (i in 1:m){
+        v_mid[i] = 0.5*(v[i]+v[i+1]);
+    }
+    for (i in 1:m-1){
+        // difference between the centers for each class
+        v_diff[i] = 0.5*(v[i+2]-v[i]); 
+    }
     // populate time vector
     t[1] = 0;
     for (i in 2:nt){
@@ -57,6 +69,7 @@ parameters {
     real<lower=0,upper=1.0/dt_norm> gamma_max;
     real<lower=0,upper=1.0/dt_norm> rho_max; 
     real<lower=0, upper=5000> E_star; 
+    //real<lower=dt,upper=dt*nt_mitosis> zeta_offset;// in this prototype, do not estimate zeta_offset
     real<lower=1e-10> sigma; 
     real<lower=-xi_max,upper=xi_max> xi;
     real<lower=-xi_max,upper=xi_max> xir;
@@ -67,15 +80,20 @@ transformed parameters {
     real divrate;
     real<lower=0, upper=1.0/dt_days> delta[m-j+1];
     matrix<lower=0>[m,nt_obs] mod_obspos;
+    real<lower=0> resp_vol_loss[nt];    // record volume loss due to respiration
+    real<lower=0> growth_vol_gain[nt];  // record volume gain due to cell growth
+    real<lower=0> total_vol[nt];        // record total volume
+    real<lower=0> cell_count[nt];       // record relative cell count for each time step 
     {
         // helper variables
-        vector[m] w_curr; 
-        vector[m] w_next;
+        matrix[m,nt_mitosis] w_curr; 
+        matrix[m,nt_mitosis] w_next;
+        real zeta = 0.0;
+        int imit_next;
         real delta_i = 0.0;
         real gamma;
         real a;
         real rho;
-        real tmp;
         real sizelim;
         real x;
         int ito = 1;
@@ -86,20 +104,43 @@ transformed parameters {
             delta[i+1] = delta[i] + delta_incr[i+1] * delta_max;
         }
         
-        w_curr = w_ini;
+        // for now, assuming they all start not in mitosis
+        w_curr = rep_matrix(0.0, m, nt_mitosis);
+        for (i in 1:m){
+            w_curr[i,1] = w_ini[i];
+        }
 
         for (it in 1:nt){ // time-stepping loop
             // record current solution 
             // here is another place where normalization could be performed
             if (it == it_obs[ito]){
-                mod_obspos[,ito] = w_curr;
+                for (i in 1:m){
+                    mod_obspos[i,ito] = 0.0;
+                    for (imit in 1:nt_mitosis){
+                        mod_obspos[i,ito] += w_curr[i,imit];
+                    }
+                }
                 ito += 1;
                 if (ito > nt_obs){
-                    break;
+                    // just needs to be a valid index
+                    // cannot use break because resp_vol_loss needs to be recorded
+                    ito = 1;
                 }
             }
             
-            w_next = rep_vector(0.0, m);
+            resp_vol_loss[it] = 0.0;
+            growth_vol_gain[it] = 0.0;
+            total_vol[it] = 0.0;
+            for (imit in 1:nt_mitosis){
+                total_vol[it] += v_mid * w_curr[:,imit];
+            }
+            cell_count[it] = sum(w_curr);
+            w_next = rep_matrix(0.0, m, nt_mitosis);
+            
+            //
+            // non-mitotic cells
+            //
+            
             for (i in 1:m){ // size-class loop
                 // compute delta_i
                 if (i >= j){
@@ -120,59 +161,95 @@ transformed parameters {
                 }
                 rho = rho_max * sizelim * dt_norm;
                 
-                // fill superdiagonal (respiration)
+                // respiration
                 if (i >= j){
                     //A[i-1,i] = rho * (1.0-delta_i);
                     a = rho * (1.0-delta_i);
-                    w_next[i-1] += a * w_curr[i];
+                    w_next[i-1,1] += a * w_curr[i,1];
+                    resp_vol_loss[it] += a * w_curr[i,1] * v_diff[i-1];
                 } else if (i > 1){
                     //A[i-1,i] = rho;
                     a = rho;
-                    w_next[i-1] += a * w_curr[i];
+                    w_next[i-1,1] += a * w_curr[i,1];
+                    resp_vol_loss[it] += a * w_curr[i,1] * v_diff[i-1];
                 }
-                // fill subdiagonal (growth)
+                // growth
                 if (i == 1){
                     //A[i+1,i] = gamma;
                     a = gamma;
-                    w_next[i+1] += a * w_curr[i];
+                    w_next[i+1,1] += a * w_curr[i,1];
+                    growth_vol_gain[it] += a * w_curr[i,1] * v_diff[i];
                 } else if (i < j){
                     //A[i+1,i] = gamma * (1.0-rho);
                     a = gamma * (1.0-rho);
-                    w_next[i+1] += a * w_curr[i];
+                    w_next[i+1,1] += a * w_curr[i,1];
+                    growth_vol_gain[it] += a * w_curr[i,1] * v_diff[i];
                 } else if (i < m){
                     //A[i+1,i] = gamma * (1.0-delta_i) * (1.0-rho);
                     a = gamma * (1.0-delta_i) * (1.0-rho);
-                    w_next[i+1] += a * w_curr[i];
+                    w_next[i+1,1] += a * w_curr[i,1];
+                    growth_vol_gain[it] += a * w_curr[i,1] * v_diff[i];
                 }
-                // fill (j-1)th superdiagonal (division)
+                // enter mitosis
                 if (i >= j){
-                    //A[i+1-j,i] = 2.0*delta_i;
-                    a = 2.0*delta_i;
-                    w_next[i+1-j] += a * w_curr[i];
+                    a = delta_i;
+                    w_next[i,2] += a * w_curr[i,1];
                 }
-                // fill diagonal (stasis)
+                // stasis
                 if (i == 1){
                     //A[i,i] = (1.0-gamma);
                     a = (1.0-gamma);
-                    w_next[i] += a * w_curr[i];
+                    w_next[i,1] += a * w_curr[i,1];
                 } else if (i < j){
                     //A[i,i] = (1.0-gamma) * (1.0-rho);
                     a = (1.0-gamma) * (1.0-rho);
-                    w_next[i] += a * w_curr[i];
+                    w_next[i,1] += a * w_curr[i,1];
                 } else if (i == m){
                     //A[i,i] = (1.0-delta_i) * (1.0-rho);
                     a = (1.0-delta_i) * (1.0-rho);
-                    w_next[i] += a * w_curr[i];
+                    w_next[i,1] += a * w_curr[i,1];
                 } else {
                     //A[i,i] = (1.0-gamma) * (1.0-delta_i) * (1.0-rho);
                     a = (1.0-gamma) * (1.0-delta_i) * (1.0-rho);
-                    w_next[i] += a * w_curr[i];
+                    w_next[i,1] += a * w_curr[i,1];
                 }
             }
-            /*
+
+            //
+            // mitotic cells
+            //
+
+            for (imit in 2:nt_mitosis-1){ // mitosis stage loop
+                imit_next = imit + 1;
+                // compute zeta
+                if ((imit-1)*dt >= zeta_offset){
+                    zeta = 1.0;
+                } else {
+                    zeta = 0.0;
+                }
+                for (i in j:m){ // size-class loop (note the starting index j)
+                    // divide and leave mitosis
+                    a = 2.0 * zeta;
+                    //a = zeta; for consistency check
+                    w_next[i+1-j,1] += a * w_curr[i,imit];
+                    
+                    // go to next stage of mitosis
+                    a = (1.0-zeta);
+                    w_next[i,imit_next] += a * w_curr[i,imit];
+                }
+            }
+            // forced division at maximum length of mitosis
+            for (i in j:m){ // size-class loop (note the starting index j)
+                w_next[i+1-j,1] += 2.0 * w_curr[i,nt_mitosis];
+                //w_next[i+1-j,1] += w_curr[i,nt_mitosis]; // for consistency check
+            }
             // use this check to test model consistency when division is set to "a = delta_i;" (no doubling)
+            /*
             if (fabs(sum(w_next)-1.0)>1e-12){
-                reject("it = ",it,", sum(w_next) = ", sum(w_next), ", rho =", rho)
+                for (imit in 1:nt_mitosis){
+                    print("in stage ",imit,": ",sum(w_next[:,imit])," before: ",sum(w_curr[:,imit]))
+                }
+                reject("it = ",it,", sum(w_next) = ", sum(w_next), ", zeta_offset =", zeta_offset)
             }
             */
             // do not normalize population here
