@@ -177,11 +177,11 @@ model {
     // fitting observations
     if (prior_only == 0){
         for (it in 1:nt_obs){
-            if(i_test[it] == 0){
+            //if(i_test[it] == 0){
                 alpha = mod_obspos[:,it]/sum(mod_obspos[:,it]) * sigma + 1;
                 theta[it] ~ dirichlet(alpha);
                 obs_count[:,it] ~ multinomial(theta[it]);
-            }
+            //}
         }
     }
 }
