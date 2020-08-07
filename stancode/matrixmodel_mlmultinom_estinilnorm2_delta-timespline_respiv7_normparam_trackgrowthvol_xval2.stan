@@ -139,7 +139,7 @@ transformed data {
 }
 parameters {
     real<lower=0.0, upper=1.0> tau_control[nknots-1];
-    real<lower=0, upper=1.0/dt_days> delta_max;
+    real<lower=10.0> delta_max;
     real<lower=0,upper=1.0/dt_norm> gamma_max;
     real<lower=0,upper=1.0/dt_norm> rho_max; 
     real<lower=0, upper=5000> E_star; 
