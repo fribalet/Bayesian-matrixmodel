@@ -17,6 +17,8 @@ data {
     int prior_only;
     // initial conditions
     vector[m] w_ini;
+    vector[m-delta_v_inv] mu_delta_incr;
+    vector[m-delta_v_inv] sigma_delta_incr;
 }
 transformed data {
     int j;
@@ -66,8 +68,8 @@ transformed data {
     }
 }
 parameters {
-    simplex[m-j+1] delta_incr;
     real<lower=0, upper=1.0/dt_days> delta_max;
+    vector<lower=0, upper=1>[m-j+1] delta_incr;
     real<lower=0,upper=1.0/dt_norm> gamma_max;
     real<lower=0,upper=1.0/dt_norm> rho_max; 
     real<lower=0, upper=5000> E_star; 
@@ -98,11 +100,12 @@ transformed parameters {
         real sizelim;
         real x;
         int ito = 1;
+        real sum_delta_incr = sum(delta_incr);
       
         // populate delta using delta_incr
-        delta[1] = delta_incr[1] * delta_max;
+        delta[1] = delta_incr[1]/sum_delta_incr * delta_max;
         for (i in 1:m-j){
-            delta[i+1] = delta[i] + delta_incr[i+1] * delta_max;
+            delta[i+1] = delta[i] + delta_incr[i+1]/sum_delta_incr * delta_max;
         }
         
         // for now, assuming they all start not in mitosis
@@ -264,9 +267,11 @@ model {
     
     // priors
     
+    delta_max ~ normal(23, 5) T[0, 1.0/dt_days]; // copied from exp_zs_20200701_g2_ext results
+    delta_incr ~ normal(mu_delta_incr, sigma_delta_incr); 
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
     rho_max ~ normal(1.5, 0.06) T[0, 1.0/dt_norm]; // copied from exp_zs_20200701_g2_ext results
-    E_star ~ normal(1000.0,1000.0) T[0,];
+    E_star ~ normal(86, 22) T[0,]; // copied from exp_zs_20200701_g2_ext results
     sigma ~ lognormal(1000.0, 1000.0) T[1,];
     xi ~ normal(0.0, 0.1);
     xir ~ normal(0.0, 0.1);
