@@ -234,7 +234,7 @@ transformed parameters {
                 for (i in j:m){ // size-class loop (note the starting index j)
                     // divide and leave mitosis
                     a = 2.0 * zeta;
-                    //a = zeta; for consistency check
+                    //a = zeta; // for consistency check
                     w_next[i+1-j,1] += a * w_curr[i,imit];
                     
                     // go to next stage of mitosis

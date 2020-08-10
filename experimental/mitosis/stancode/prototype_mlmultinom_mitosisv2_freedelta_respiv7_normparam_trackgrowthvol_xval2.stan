@@ -97,7 +97,6 @@ transformed parameters {
         real sizelim;
         real x;
         int ito = 1;
-        real sum_delta_incr = sum(delta_incr);
       
         // for now, assuming they all start not in mitosis
         w_curr = rep_matrix(0.0, m, nt_mitosis);
