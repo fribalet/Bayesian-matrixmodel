@@ -15,6 +15,10 @@ data {
     // for cross-validation
     int<lower=0, upper=1> i_test[nt_obs];
     int prior_only;
+    // initial conditions
+    vector[m] w_ini;
+    vector[m-delta_v_inv] mu_delta_incr;
+    vector[m-delta_v_inv] sigma_delta_incr;
 }
 transformed data {
     int j;
@@ -28,8 +32,9 @@ transformed data {
     int<lower=0> t[nt];     // vector of times in minutes since start 
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
-    int mitosis_maxlen_min = 60*5; // maximum length of mitosis in units of minutes
+    int mitosis_maxlen_min = 4*60; // maximum length of mitosis in units of minutes
     int nt_mitosis = mitosis_maxlen_min/dt;
+    real zeta_offset = 100000.0; // large value in prototype
 
     j = 1 + delta_v_inv; 
     delta_v = 1.0/delta_v_inv;
@@ -62,15 +67,14 @@ transformed data {
     }
 }
 parameters {
-    simplex[m-j+1] delta_incr;
     real<lower=0, upper=1.0/dt_days> delta_max;
+    vector<lower=0, upper=1>[m-j+1] delta_incr;
     real<lower=0,upper=1.0/dt_norm> gamma_max;
     real<lower=0,upper=1.0/dt_norm> rho_max; 
     real<lower=0, upper=5000> E_star; 
-    real<lower=dt,upper=dt*nt_mitosis> zeta_offset;
+    //real<lower=dt,upper=dt*nt_mitosis> zeta_offset;// in this prototype, do not estimate zeta_offset
     real<lower=1e-10> sigma; 
     simplex[m] theta[nt_obs];
-    simplex[m] w_ini;  // initial conditions
 }
 transformed parameters {
     real divrate;
@@ -92,11 +96,12 @@ transformed parameters {
         real rho;
         real x;
         int ito = 1;
+        real sum_delta_incr = sum(delta_incr);
       
         // populate delta using delta_incr
-        delta[1] = delta_incr[1] * delta_max;
+        delta[1] = delta_incr[1]/sum_delta_incr * delta_max;
         for (i in 1:m-j){
-            delta[i+1] = delta[i] + delta_incr[i+1] * delta_max;
+            delta[i+1] = delta[i] + delta_incr[i+1]/sum_delta_incr * delta_max;
         }
         
         // for now, assuming they all start not in mitosis
@@ -220,18 +225,48 @@ transformed parameters {
                 for (i in j:m){ // size-class loop (note the starting index j)
                     // divide and leave mitosis
                     a = 2.0 * zeta;
-                    //a = zeta; for consistency check
+                    //a = zeta; // for consistency check
                     w_next[i+1-j,1] += a * w_curr[i,imit];
                     
-                    // go to next stage of mitosis
-                    a = (1.0-zeta);
-                    w_next[i,imit_next] += a * w_curr[i,imit];
+                    // respiration (not permitted to shrink below size class j)
+                    if (i > j){
+                        //A[i-1,i] = rho * (1.0-zeta);
+                        a = rho * (1.0-zeta);
+                        w_next[i-1,imit_next] += a * w_curr[i,imit];
+                        resp_vol_loss[it] += a * w_curr[i,imit] * v_diff[i-1];
+                    } 
+                    // growth
+                    if (i == j){
+                        //A[i+1,i] = gamma * (1.0-zeta);
+                        a = gamma * (1.0-zeta);
+                        w_next[i+1,imit_next] += a * w_curr[i,imit];
+                        growth_vol_gain[it] += a * w_curr[i,imit] * v_diff[i];
+                    } else if (i < m){
+                        //A[i+1,i] = gamma * (1.0-zeta) * (1.0-rho);
+                        a = gamma * (1.0-zeta) * (1.0-rho);
+                        w_next[i+1,imit_next] += a * w_curr[i,imit];
+                        growth_vol_gain[it] += a * w_curr[i,imit] * v_diff[i];
+                    }
+                    // stasis
+                    if (i == j){
+                        //A[i,i] = (1.0-gamma) * (1.0-zeta);
+                        a = (1.0-gamma) * (1.0-zeta);
+                        w_next[i,imit_next] += a * w_curr[i,imit];
+                    } else if (i == m){
+                        //A[i,i] = (1.0-zeta) * (1.0-rho);
+                        a = (1.0-zeta) * (1.0-rho);
+                        w_next[i,imit_next] += a * w_curr[i,imit];
+                    } else {
+                        //A[i,i] = (1.0-gamma) * (1.0-zeta) * (1.0-rho);
+                        a = (1.0-gamma) * (1.0-zeta) * (1.0-rho);
+                        w_next[i,imit_next] += a * w_curr[i,imit];
+                    }
                 }
             }
             // forced division at maximum length of mitosis
             for (i in j:m){ // size-class loop (note the starting index j)
-                w_next[max(i+1-j,1),1] += 2.0 * w_curr[i,nt_mitosis];
-                //w_next[max(i+1-j,1),1] += w_curr[i,nt_mitosis]; // for consistency check
+                w_next[i+1-j,1] += 2.0 * w_curr[i,nt_mitosis];
+                //w_next[i+1-j,1] += w_curr[i,nt_mitosis]; // for consistency check
             }
             // use this check to test model consistency when division is set to "a = delta_i;" (no doubling)
             /*
@@ -253,11 +288,12 @@ model {
     
     // priors
     
+    delta_max ~ normal(23, 5) T[0, 1.0/dt_days]; // copied from exp_zs_20200701_g2_ext results
+    delta_incr ~ normal(mu_delta_incr, sigma_delta_incr); 
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
-    rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
-    E_star ~ normal(1000.0,1000.0) T[0,];
+    rho_max ~ normal(1.5, 0.06) T[0, 1.0/dt_norm]; // copied from exp_zs_20200701_g2_ext results
+    E_star ~ normal(86, 22) T[0,]; // copied from exp_zs_20200701_g2_ext results
     sigma ~ lognormal(1000.0, 1000.0) T[1,];
-    zeta_offset ~ normal(60.0*4.0, 30.0);
 
     // fitting observations
     if (prior_only == 0){

@@ -88,7 +88,6 @@ transformed parameters {
         real gamma;
         real a;
         real rho;
-        real tmp;
         real sizelim;
         real x;
         int ito = 1;

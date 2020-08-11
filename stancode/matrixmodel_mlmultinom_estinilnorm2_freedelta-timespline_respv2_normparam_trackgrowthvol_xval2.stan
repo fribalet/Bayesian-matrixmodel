@@ -138,7 +138,6 @@ transformed data {
 }
 parameters {
     real<lower=0.0, upper=1.0> tau_control[nknots-1];
-    simplex[m-j+1] delta_incr;
     real<lower=0> delta_mu; 
     real<lower=0> delta_sigma; 
     real<lower=0,upper=1.0/dt_days> delta[m-j+1]; 
@@ -152,7 +151,6 @@ parameters {
 transformed parameters {
     real divrate;
     vector[nt_1day] tau;
-    real<lower=0, upper=1.0/dt_days> delta[m-j+1];
     matrix<lower=0>[m,nt_obs] mod_obspos;
     real<lower=0> resp_vol_loss[nt];    // record volume loss due to respiration
     real<lower=0> growth_vol_gain[nt];  // record volume gain due to cell growth

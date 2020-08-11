@@ -1,60 +1,3 @@
-functions {
-    vector compute_b_spline(int nx, vector x, real[] knots_padded, int p, int i);
-    vector compute_b_spline(int nx, vector x, real[] knots_padded, int p, int i){
-        //////////////////////////////////////////
-        // function for computing b-splines recursively
-        vector[nx] alpha1;
-        vector[nx] alpha2;
-
-        if (p == 0){
-            for (ix in 1:nx){
-                if (x[ix] < knots_padded[i] || x[ix] >= knots_padded[i+1]){
-                    alpha1[ix] = 0.0;
-                } else {
-                    alpha1[ix] = 1.0;
-                }
-            }
-            return alpha1;
-        }
-        if (knots_padded[i+p] == knots_padded[i]){
-            alpha1 = rep_vector(0.0, nx);
-        } else {
-            for (ix in 1:nx){
-                alpha1[ix] = (x[ix]-knots_padded[i])/(knots_padded[i+p]-knots_padded[i]);
-            }
-        }
-        if (knots_padded[i+p+1] == knots_padded[i+1]){
-            alpha2 = rep_vector(0.0, nx);
-        } else {
-            for (ix in 1:nx){
-                alpha2[ix] = (knots_padded[i+p+1]-x[ix])/(knots_padded[i+p+1]-knots_padded[i+1]);
-            }
-        }
-        return alpha1 .* compute_b_spline(nx, x, knots_padded, p-1, i) + alpha2 .* compute_b_spline(nx, x, knots_padded, p-1, i+1);
-    }
-    matrix compute_b_splines(int nx, vector x, int n, real[] knots, int p){
-        //////////////////////////////////////////
-        // function for pre-computing b-splines for given knots  
-        matrix[nx,n+p-1] result;
-        real knots_padded[n+2*p];
-
-        int i0 = 1;
-        int i1 = 1;
-        for (i in 1:p){
-            // repeat at same distance
-            knots_padded[p+1-i] = knots[1] - knots[n] + knots[n-i];
-            knots_padded[p+n+i] = knots[n] + knots[i+1] - knots[1];
-        }
-        for (i in 1:n){
-            knots_padded[p+i] = knots[i];
-        }
-        for (i in 1:n+p-1){
-            result[:,i] = compute_b_spline(nx, x, knots_padded, p, i);
-        }
-        //result[nx,n+p-1] = 1.0; // not needed
-        return result;
-    }
-}
 data {
     // size variables
     int<lower=0> m;         // number of size classes
@@ -72,6 +15,8 @@ data {
     // for cross-validation
     int<lower=0, upper=1> i_test[nt_obs];
     int prior_only;
+    // initial conditions
+    vector[m] w_ini;
 }
 transformed data {
     int j;
@@ -85,10 +30,8 @@ transformed data {
     int<lower=0> t[nt];     // vector of times in minutes since start 
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
-    int p_spline = 3;       // degree of spline, hardcoded for now
-    int nknots = 12;        // number of knots for spline, hardcoded for now
-    int nt_1day = 1440/dt;
-    matrix[nt_1day,nknots+p_spline-1] bsplines;
+    int mitosis_maxlen_min = 60*5; // maximum length of mitosis in units of minutes
+    int nt_mitosis = mitosis_maxlen_min/dt;
 
     j = 1 + delta_v_inv; 
     delta_v = 1.0/delta_v_inv;
@@ -119,36 +62,20 @@ transformed data {
             }
         }
     }
-    /*
-    ** spline-related
-    */
-    {
-        real knots[nknots];
-        vector[nt_1day] t_1day;
-        t_1day[1] = 0;
-        for (i in 2:nt_1day){
-            t_1day[i] = (t_1day[i-1] + dt);
-        }
-        for (i in 1:nknots){
-            knots[i] = ((i-1)*1440.0)/(nknots-1);
-        }
-        // compute b-splines, now that knots are known
-        bsplines = compute_b_splines(nt_1day, t_1day, nknots, knots, p_spline);
-    }
 }
 parameters {
-    real<lower=0.0, upper=1.0> tau_control[nknots-1];
-    real<lower=10.0> delta_max;
+    real<lower=0> delta_mu; 
+    real<lower=0> delta_sigma; 
+    real<lower=0,upper=1.0/dt_days> delta[m-j+1]; 
     real<lower=0,upper=1.0/dt_norm> gamma_max;
     real<lower=0,upper=1.0/dt_norm> rho_max; 
     real<lower=0, upper=5000> E_star; 
+    real<lower=dt,upper=dt*nt_mitosis> zeta_offset;
     real<lower=1e-10> sigma; 
     simplex[m] theta[nt_obs];
-    simplex[m] w_ini;  // initial conditions
 }
 transformed parameters {
     real divrate;
-    vector[nt_1day] tau;
     matrix<lower=0>[m,nt_obs] mod_obspos;
     real<lower=0> resp_vol_loss[nt];    // record volume loss due to respiration
     real<lower=0> growth_vol_gain[nt];  // record volume gain due to cell growth
@@ -156,32 +83,33 @@ transformed parameters {
     real<lower=0> cell_count[nt];       // record relative cell count for each time step 
     {
         // helper variables
-        vector[m] w_curr; 
-        vector[m] w_next;
-        vector[nknots+p_spline-1] tau_control_ext;
-        real tau_t;
+        matrix[m,nt_mitosis] w_curr; 
+        matrix[m,nt_mitosis] w_next;
+        real zeta = 0.0;
+        int imit_next;
         real delta_i = 0.0;
         real gamma;
         real a;
         real rho;
         real x;
         int ito = 1;
-        
-        for (i in 1:nknots-1){
-            tau_control_ext[i] = tau_control[i];
+      
+        // for now, assuming they all start not in mitosis
+        w_curr = rep_matrix(0.0, m, nt_mitosis);
+        for (i in 1:m){
+            w_curr[i,1] = w_ini[i];
         }
-        for (i in 1:p_spline){
-            tau_control_ext[nknots-1+i] = tau_control[i];
-        }
-        tau = bsplines * tau_control_ext;
-
-        w_curr = w_ini;
 
         for (it in 1:nt){ // time-stepping loop
             // record current solution 
             // here is another place where normalization could be performed
             if (it == it_obs[ito]){
-                mod_obspos[,ito] = w_curr;
+                for (i in 1:m){
+                    mod_obspos[i,ito] = 0.0;
+                    for (imit in 1:nt_mitosis){
+                        mod_obspos[i,ito] += w_curr[i,imit];
+                    }
+                }
                 ito += 1;
                 if (ito > nt_obs){
                     // just needs to be a valid index
@@ -189,9 +117,6 @@ transformed parameters {
                     ito = 1;
                 }
             }
-
-            // compute current tau_t
-            tau_t = tau[(it%nt_1day)+1];
             
             // compute gamma and rho
             gamma = gamma_max * dt_norm * (1.0 - exp(-E[it]/E_star)) - rho_max * dt_norm;
@@ -202,75 +127,144 @@ transformed parameters {
                 gamma = 0.0;
             }
 
-            w_next = rep_vector(0.0, m);
             resp_vol_loss[it] = 0.0;
             growth_vol_gain[it] = 0.0;
-            total_vol[it] = v_mid * w_curr;
+            total_vol[it] = 0.0;
+            for (imit in 1:nt_mitosis){
+                total_vol[it] += v_mid * w_curr[:,imit];
+            }
             cell_count[it] = sum(w_curr);
+            w_next = rep_matrix(0.0, m, nt_mitosis);
+            
+            //
+            // non-mitotic cells
+            //
+            
             for (i in 1:m){ // size-class loop
                 // compute delta_i
                 if (i >= j){
-                    delta_i = tau_t * delta_max * dt_days;
+                    delta_i = delta[i-j+1] * dt_days;
                 }
                 
-                // fill superdiagonal (respiration)
+                // respiration
                 if (i >= j){
                     //A[i-1,i] = rho * (1.0-delta_i);
                     a = rho * (1.0-delta_i);
-                    w_next[i-1] += a * w_curr[i];
-                    resp_vol_loss[it] += a * w_curr[i] * v_diff[i-1];
+                    w_next[i-1,1] += a * w_curr[i,1];
+                    resp_vol_loss[it] += a * w_curr[i,1] * v_diff[i-1];
                 } else if (i > 1){
                     //A[i-1,i] = rho;
                     a = rho;
-                    w_next[i-1] += a * w_curr[i];
-                    resp_vol_loss[it] += a * w_curr[i] * v_diff[i-1];
+                    w_next[i-1,1] += a * w_curr[i,1];
+                    resp_vol_loss[it] += a * w_curr[i,1] * v_diff[i-1];
                 }
-                // fill subdiagonal (growth)
+                // growth
                 if (i == 1){
                     //A[i+1,i] = gamma;
                     a = gamma;
-                    w_next[i+1] += a * w_curr[i];
-                    growth_vol_gain[it] += a * w_curr[i] * v_diff[i];
+                    w_next[i+1,1] += a * w_curr[i,1];
+                    growth_vol_gain[it] += a * w_curr[i,1] * v_diff[i];
                 } else if (i < j){
                     //A[i+1,i] = gamma * (1.0-rho);
                     a = gamma * (1.0-rho);
-                    w_next[i+1] += a * w_curr[i];
-                    growth_vol_gain[it] += a * w_curr[i] * v_diff[i];
+                    w_next[i+1,1] += a * w_curr[i,1];
+                    growth_vol_gain[it] += a * w_curr[i,1] * v_diff[i];
                 } else if (i < m){
                     //A[i+1,i] = gamma * (1.0-delta_i) * (1.0-rho);
                     a = gamma * (1.0-delta_i) * (1.0-rho);
-                    w_next[i+1] += a * w_curr[i];
-                    growth_vol_gain[it] += a * w_curr[i] * v_diff[i];
+                    w_next[i+1,1] += a * w_curr[i,1];
+                    growth_vol_gain[it] += a * w_curr[i,1] * v_diff[i];
                 }
-                // fill (j-1)th superdiagonal (division)
+                // enter mitosis
                 if (i >= j){
-                    //A[i+1-j,i] = 2.0*delta_i;
-                    a = 2.0*delta_i;
-                    w_next[i+1-j] += a * w_curr[i];
+                    a = delta_i;
+                    w_next[i,2] += a * w_curr[i,1];
                 }
-                // fill diagonal (stasis)
+                // stasis
                 if (i == 1){
                     //A[i,i] = (1.0-gamma);
                     a = (1.0-gamma);
-                    w_next[i] += a * w_curr[i];
+                    w_next[i,1] += a * w_curr[i,1];
                 } else if (i < j){
                     //A[i,i] = (1.0-gamma) * (1.0-rho);
                     a = (1.0-gamma) * (1.0-rho);
-                    w_next[i] += a * w_curr[i];
+                    w_next[i,1] += a * w_curr[i,1];
                 } else if (i == m){
                     //A[i,i] = (1.0-delta_i) * (1.0-rho);
                     a = (1.0-delta_i) * (1.0-rho);
-                    w_next[i] += a * w_curr[i];
+                    w_next[i,1] += a * w_curr[i,1];
                 } else {
                     //A[i,i] = (1.0-gamma) * (1.0-delta_i) * (1.0-rho);
                     a = (1.0-gamma) * (1.0-delta_i) * (1.0-rho);
-                    w_next[i] += a * w_curr[i];
+                    w_next[i,1] += a * w_curr[i,1];
                 }
             }
-            /*
+
+            //
+            // mitotic cells
+            //
+
+            for (imit in 2:nt_mitosis-1){ // mitosis stage loop
+                imit_next = imit + 1;
+                // compute zeta
+                if ((imit-1)*dt >= zeta_offset){
+                    zeta = 1.0;
+                } else {
+                    zeta = 0.0;
+                }
+                for (i in j:m){ // size-class loop (note the starting index j)
+                    // divide and leave mitosis
+                    a = 2.0 * zeta;
+                    //a = zeta; // for consistency check
+                    w_next[i+1-j,1] += a * w_curr[i,imit];
+                    
+                    // respiration (not permitted to shrink below size class j)
+                    if (i > j){
+                        //A[i-1,i] = rho * (1.0-zeta);
+                        a = rho * (1.0-zeta);
+                        w_next[i-1,imit_next] += a * w_curr[i,imit];
+                        resp_vol_loss[it] += a * w_curr[i,imit] * v_diff[i-1];
+                    } 
+                    // growth
+                    if (i == j){
+                        //A[i+1,i] = gamma * (1.0-zeta);
+                        a = gamma * (1.0-zeta);
+                        w_next[i+1,imit_next] += a * w_curr[i,imit];
+                        growth_vol_gain[it] += a * w_curr[i,imit] * v_diff[i];
+                    } else if (i < m){
+                        //A[i+1,i] = gamma * (1.0-zeta) * (1.0-rho);
+                        a = gamma * (1.0-zeta) * (1.0-rho);
+                        w_next[i+1,imit_next] += a * w_curr[i,imit];
+                        growth_vol_gain[it] += a * w_curr[i,imit] * v_diff[i];
+                    }
+                    // stasis
+                    if (i == j){
+                        //A[i,i] = (1.0-gamma) * (1.0-zeta);
+                        a = (1.0-gamma) * (1.0-zeta);
+                        w_next[i,imit_next] += a * w_curr[i,imit];
+                    } else if (i == m){
+                        //A[i,i] = (1.0-zeta) * (1.0-rho);
+                        a = (1.0-zeta) * (1.0-rho);
+                        w_next[i,imit_next] += a * w_curr[i,imit];
+                    } else {
+                        //A[i,i] = (1.0-gamma) * (1.0-zeta) * (1.0-rho);
+                        a = (1.0-gamma) * (1.0-zeta) * (1.0-rho);
+                        w_next[i,imit_next] += a * w_curr[i,imit];
+                    }
+                }
+            }
+            // forced division at maximum length of mitosis
+            for (i in j:m){ // size-class loop (note the starting index j)
+                w_next[i+1-j,1] += 2.0 * w_curr[i,nt_mitosis];
+                //w_next[i+1-j,1] += w_curr[i,nt_mitosis]; // for consistency check
+            }
             // use this check to test model consistency when division is set to "a = delta_i;" (no doubling)
+            /*
             if (fabs(sum(w_next)-1.0)>1e-12){
-                reject("it = ",it,", sum(w_next) = ", sum(w_next), ", rho =", rho)
+                for (imit in 1:nt_mitosis){
+                    print("in stage ",imit,": ",sum(w_next[:,imit])," before: ",sum(w_curr[:,imit]))
+                }
+                reject("it = ",it,", sum(w_next) = ", sum(w_next), ", zeta_offset =", zeta_offset)
             }
             */
             // do not normalize population here
@@ -283,12 +277,15 @@ model {
     vector[m] alpha;
     
     // priors
-   
-    tau_control ~ beta(4,1);
+    
+    delta_mu ~ normal(3.0, 1.0);
+    delta_sigma ~ exponential(1.0);
+    delta ~ normal(delta_mu, delta_sigma);
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
-    rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
-    E_star ~ normal(1000.0,1000.0) T[0,];
+    rho_max ~ normal(1.5, 0.06) T[0, 1.0/dt_norm]; // copied from exp_zs_20200701_g2_ext results
+    E_star ~ normal(86, 22) T[0,]; // copied from exp_zs_20200701_g2_ext results
     sigma ~ lognormal(1000.0, 1000.0) T[1,];
+    zeta_offset ~ uniform(dt,dt*nt_mitosis);
 
     // fitting observations
     if (prior_only == 0){
