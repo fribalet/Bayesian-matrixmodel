@@ -3,3 +3,4 @@
 .ipynb_checkpoints
 **/npz/*.pdf
 *_cache
+parameter_plots/*.csv
