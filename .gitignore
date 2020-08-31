@@ -3,5 +3,9 @@
 .ipynb_checkpoints
 **/npz/*.pdf
 *_cache
+<<<<<<< HEAD
 parameter_plots/fit_m*
 parameter_plots/prior*
+=======
+parameter_plots/*.csv
+>>>>>>> master
