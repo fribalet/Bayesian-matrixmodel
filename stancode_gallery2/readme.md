@@ -26,7 +26,7 @@
 
 ## Model differences:
 
-| version | core model | `delta_max` | using respiration | size-dep respiration | size-dep growth | light-dep division | using net growth <sup>[\[1\]](#netfootnote) | growth/respiration version <sup>[\[2\]](#versionfootnote) |
+| version | core model<sup>[\[1\]](#corefootnote) | `delta_max` | using respiration | size-dep respiration | size-dep growth | light-dep division | using net growth <sup>[\[2\]](#netfootnote) | growth/respiration version <sup>[\[3\]](#versionfootnote) |
 | ------- | ---------- | ----------  | --- | --- | --- | --- | --- | -------------------------- |
 |`m1`     |            | free        |     |     |     |     |     | basic                      |
 |`m2`     | ✓          | monotonic   |     |     |     |     |     | basic                      |
@@ -43,9 +43,11 @@
 |`m13`    |            | monotonic   | ✓   |     | ✓   | ✓   | ✓   | `resp_gammaiv6`            |
 |`m14`    | ✓          | monotonic   | ✓   |     | ✓   | ✓   |     | `resp_gammaiv7`            |
 
-<a name="netfootnote">[1]</a> Growth and respiration cannot occur at the same time.
+<a name="corefootnote">[1]</a> Based on discussion on 2020-09-01.
 
-<a name="versionfootnote">[2]</a> See [this notebook](/sizedep_formulations.ipynb).
+<a name="netfootnote">[2]</a> Growth and respiration cannot occur at the same time.
+
+<a name="versionfootnote">[1]</a> See [this notebook](/sizedep_formulations.ipynb).
 
 ## Initial tests
 
