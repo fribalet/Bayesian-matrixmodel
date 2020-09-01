@@ -26,22 +26,22 @@
 
 ## Model differences:
 
-| version | `delta_max` | using respiration | size-dep respiration | size-dep growth | light-dep division | using net growth <sup>[\[1\]](#netfootnote) | growth/respiration version <sup>[\[2\]](#versionfootnote) |
-| ------- | ----------  | --- | --- | --- | --- | --- | -------------------------- |
-|`m1`     | free        |     |     |     |     |     | basic                      |
-|`m2`     | monotonic   |     |     |     |     |     | basic                      |
-|`m3`     | monotonic   |     |     | ✓   |     |     | `gammaiv6`                 |
-|`m4`     | monotonic   | ✓   |     |     |     |     | `respv1`                   |
-|`m5`     | monotonic   | ✓   |     |     |     | ✓   | `respv2`                   |
-|`m6`     | monotonic   | ✓   | ✓   | ✓   |     | ✓   | `respiv6`                  |
-|`m7`     | monotonic   | ✓   | ✓   | ✓   |     |     | `respiv7`                  |
-|`m8`     | monotonic   | ✓   | ✓   | ✓   | ✓   | ✓   | `respiv6`                  |
-|`m9`     | monotonic   | ✓   | ✓   | ✓   | ✓   |     | `respiv7`                  |
-|`m10`    | monotonic   | ✓   |     |     | ✓   | ✓   | `respv2`                   |
-|`m11`    | monotonic   | ✓   |     | ✓   |     | ✓   | `resp_gammaiv6`            |
-|`m12`    | monotonic   | ✓   |     | ✓   |     |     | `resp_gammaiv7`            |
-|`m13`    | monotonic   | ✓   |     | ✓   | ✓   | ✓   | `resp_gammaiv6`            |
-|`m14`    | monotonic   | ✓   |     | ✓   | ✓   |     | `resp_gammaiv7`            |
+| version | core model | `delta_max` | using respiration | size-dep respiration | size-dep growth | light-dep division | using net growth <sup>[\[1\]](#netfootnote) | growth/respiration version <sup>[\[2\]](#versionfootnote) |
+| ------- | ---------- | ----------  | --- | --- | --- | --- | --- | -------------------------- |
+|`m1`     |            | free        |     |     |     |     |     | basic                      |
+|`m2`     | ✓          | monotonic   |     |     |     |     |     | basic                      |
+|`m3`     |            | monotonic   |     |     | ✓   |     |     | `gammaiv6`                 |
+|`m4`     | ✓          | monotonic   | ✓   |     |     |     |     | `respv1`                   |
+|`m5`     | ✓          | monotonic   | ✓   |     |     |     | ✓   | `respv2`                   |
+|`m6`     |            | monotonic   | ✓   | ✓   | ✓   |     | ✓   | `respiv6`                  |
+|`m7`     |            | monotonic   | ✓   | ✓   | ✓   |     |     | `respiv7`                  |
+|`m8`     |            | monotonic   | ✓   | ✓   | ✓   | ✓   | ✓   | `respiv6`                  |
+|`m9`     |            | monotonic   | ✓   | ✓   | ✓   | ✓   |     | `respiv7`                  |
+|`m10`    |            | monotonic   | ✓   |     |     | ✓   | ✓   | `respv2`                   |
+|`m11`    |            | monotonic   | ✓   |     | ✓   |     | ✓   | `resp_gammaiv6`            |
+|`m12`    | ✓          | monotonic   | ✓   |     | ✓   |     |     | `resp_gammaiv7`            |
+|`m13`    |            | monotonic   | ✓   |     | ✓   | ✓   | ✓   | `resp_gammaiv6`            |
+|`m14`    | ✓          | monotonic   | ✓   |     | ✓   | ✓   |     | `resp_gammaiv7`            |
 
 <a name="netfootnote">[1]</a> Growth and respiration cannot occur at the same time.
 
