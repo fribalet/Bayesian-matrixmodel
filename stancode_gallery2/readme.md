@@ -26,7 +26,7 @@
 
 ## Model differences:
 
-| version | core model<sup>[\[1\]](#corefootnote) | `delta_max` | using respiration | size-dep respiration | size-dep growth | light-dep division | using net growth <sup>[\[2\]](#netfootnote) | growth/respiration version <sup>[\[3\]](#versionfootnote) |
+| version | core model <sup>[\[1\]](#corefootnote) | `delta_max` | using respiration | size-dep respiration | size-dep growth | light-dep division | using net growth <sup>[\[2\]](#netfootnote) | growth/respiration version <sup>[\[3\]](#versionfootnote) |
 | ------- | ---------- | ----------  | --- | --- | --- | --- | --- | -------------------------- |
 |`m1`     |            | free        |     |     |     |     |     | basic                      |
 |`m2`     | ✓          | monotonic   |     |     |     |     |     | basic                      |
@@ -47,7 +47,7 @@
 
 <a name="netfootnote">[2]</a> Growth and respiration cannot occur at the same time.
 
-<a name="versionfootnote">[1]</a> See [this notebook](/sizedep_formulations.ipynb).
+<a name="versionfootnote">[3]</a> See [this notebook](/sizedep_formulations.ipynb).
 
 ## Initial tests
 
