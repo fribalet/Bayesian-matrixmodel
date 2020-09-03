@@ -52,3 +52,23 @@
 ## Initial tests
 
  * Initial tests of models `m1` to `m10` shown in [this notebook](/experimental/exp_zs_20200624_gallery2_test.ipynb).
+ 
+## Proposed naming schemes
+
+### "growth-division-respiration subscript" scheme
+
+**idea:** A 3-letter subscript where the first letter describes the growth scheme used in the model, the second letter describes division, and the third letter describes the respiration + exudation scheme.
+
+|             | position | meaning |
+|------       |----------|---------|
+| growth      | 1        | **b**(asic), **s**(ize-dependent) |
+| division    | 2        | **m**(onotonic), **l**(ight-dependent) |
+| respiration | 3        | **x** (none), **b**(asic), **n**(et growth/respiration) |
+
+| working title | proposed name    |
+|-----------    |---------------   |
+| `m2`          | m<sub>bmx</sub>  |
+| `m4`          | m<sub>bmb</sub>  |
+| `m5`          | m<sub>bmn</sub>  |
+| `m12`         | m<sub>smb</sub>  |
+| `m14`         | m<sub>slb</sub>  |
