@@ -72,3 +72,17 @@
 | `m5`          | m<sub>bmn</sub>  |
 | `m12`         | m<sub>smb</sub>  |
 | `m14`         | m<sub>slb</sub>  |
+
+>looks good to me... maybe just differentiate the two b's? For respiration the letters could be: **x** (none), **g**(ross), **n**(et growth/respiration)? So we'd have:
+
+| working title | proposed name    |
+|-----------    |---------------   |
+| `m2`          | m<sub>bmx</sub>  |
+| `m4`          | m<sub>bmg</sub>  |
+| `m5`          | m<sub>bmn</sub>  |
+| `m12`         | m<sub>smg</sub>  |
+| `m14`         | m<sub>slg</sub>  |
+
+
+
+
