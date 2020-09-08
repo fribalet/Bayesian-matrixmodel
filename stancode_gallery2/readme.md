@@ -55,33 +55,7 @@
  
 ## Proposed naming schemes
 
-### "growth-division-respiration subscript" scheme
-
-**idea:** A 3-letter subscript where the first letter describes the growth scheme used in the model, the second letter describes division, and the third letter describes the respiration + exudation scheme.
-
-|             | position | meaning |
-|------       |----------|---------|
-| growth      | 1        | **b**(asic), **s**(ize-dependent) |
-| division    | 2        | **m**(onotonic), **l**(ight-dependent) |
-| respiration | 3        | **x** (none), **b**(asic), **n**(et growth/respiration) |
-
-| working title | proposed name    |
-|-----------    |---------------   |
-| `m2`          | m<sub>bmx</sub>  |
-| `m4`          | m<sub>bmb</sub>  |
-| `m5`          | m<sub>bmn</sub>  |
-| `m12`         | m<sub>smb</sub>  |
-| `m14`         | m<sub>slb</sub>  |
-
->looks good to me... maybe just differentiate the two b's? For respiration the letters could be: **x** (none), **g**(ross), **n**(et growth/respiration)? So we'd have:
-
-| working title | proposed name    |
-|-----------    |---------------   |
-| `m2`          | m<sub>bmx</sub>  |
-| `m4`          | m<sub>bmg</sub>  |
-| `m5`          | m<sub>bmn</sub>  |
-| `m12`         | m<sub>smg</sub>  |
-| `m14`         | m<sub>slg</sub>  |
+[see wiki](https://github.com/fribalet/Bayesian-matrixmodel/wiki/Model-names)
 
 
 
