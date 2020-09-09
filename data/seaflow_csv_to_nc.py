@@ -16,38 +16,6 @@ specified as input parameters. If --createplots is active, both
 the old and new size grid are plotted along with the old and regridded 
 data set. The regridded data is saved in NetCDF format.'''
 
-def read_csv(fname):
-    with open(fname) as f:
-
-        header = f.readline()
-        header_parts=header.strip().split(',')
-        
-        v_info = np.array([float(x.strip('(]" ')) for x in header_parts[2:]])
-        
-        data = {'t_min':[], 'par':[], 'data':[]}
-        
-        for i,line in enumerate(f):
-            line_parts = line.strip().split(',')
-            
-            date = parse(line_parts[0])
-            if i == 0:
-                date0 = date
-                #m = len(line_parts)-2
-           
-            data['t_min'].append((date-date0).total_seconds()//60)
-            data['par'].append(float(line_parts[1]))
-            data['data'].append([float(x) for x in line_parts[2:]])
-
-    for k in data:
-        data[k] = np.array(data[k])
-    
-    data['v_edges'] = np.empty(len(v_info)//2+1)
-    data['v_edges'][:-1] = v_info[::2]
-    data['v_edges'][-1] = v_info[-1]
-
-    return data
-
-
 def regrid(v0, w0, v1, permit_smallgrid=False):
     # assert that old grid is contained in new one
     if  v1[0] > v0[0]:
