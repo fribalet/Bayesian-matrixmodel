@@ -95,7 +95,7 @@ if __name__ == '__main__':
     
     filesuffix = ''
     if args.startday is not None or args.endday is not None:
-        day = data['t_min']//1400 + 1
+        day = (data['t_min']//1400 + 1).astype(int)
         index = np.ones_like(day, dtype=bool)
 
         if args.startday is not None:
@@ -119,7 +119,7 @@ if __name__ == '__main__':
 
     data['data'] = data_raw.iloc[:,args.minbinindex:].values
     data['par'] = data_raw['PAR'].values
-
+    data['count'] = np.sum(data['data'], axis=1) * data_raw['volume'].values
 
     #
     # perform regridding
@@ -190,6 +190,11 @@ if __name__ == '__main__':
         nc.variables['size_bounds'][:] = v
         nc.variables['size_bounds'].units = 'um3'
         nc.variables['size_bounds'].long_name = 'the lower and upper bounds for each size class'
+
+        nc.createVariable('count', int, ('time',), fill_value=False)
+        nc.variables['count'][:] = data['count'] 
+        nc.variables['count'].units = 'dimensionless'
+        nc.variables['count'].long_name = 'cell counts across all size classes'
 
         nc.createVariable('w_obs', float, ('size','time'), fill_value=False)
         nc.variables['w_obs'][:] = w/np.sum(w,axis=0)

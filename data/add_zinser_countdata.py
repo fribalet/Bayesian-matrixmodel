@@ -17,4 +17,4 @@ if len(sys.argv) > 1:
         assert nc.variables['time'].size == len(zinser_counts)
         nc.createVariable('count', int, ('time',), fill_value=False)
         nc.variables['count'][:] = zinser_counts
-        nc.variables['count'].long_name = 'cell counts at each time'
+        nc.variables['count'].long_name = 'cell counts across all size classes'
