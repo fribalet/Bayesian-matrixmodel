@@ -6,3 +6,4 @@
 parameter_plots/fit_m*
 parameter_plots/prior*
 parameter_plots/*.csv
+experimental/data_*.nc
