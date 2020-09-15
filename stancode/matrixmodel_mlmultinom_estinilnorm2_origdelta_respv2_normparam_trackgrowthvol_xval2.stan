@@ -88,10 +88,11 @@ transformed parameters {
         real rho;
         real x;
         int ito = 1;
+        real tmp;
       
-        for (i in 1:m-j){
-            tmp = (delta_a*v[j+i])^delta_b; 
-            delta[i+1] = delta_max * tmp/(1+tmp);
+        for (i in 1:m-j+1){
+            tmp = (delta_a*v[j+i-1])^delta_b; 
+            delta[i] = delta_max * tmp/(1+tmp);
         }
         
         w_curr = w_ini;

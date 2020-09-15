@@ -223,16 +223,17 @@ model {
     
     // priors
     
-    delta_max_sigma ~ exponential(1.0);
+    delta_max_mu ~ normal(30.0, 10.0) T[0,1.0/dt_days];
+    delta_max_sigma ~ exponential(0.1);
 
-    gamma_max_mu ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
+    gamma_max_mu ~ normal(3.0, 1.0) T[0,1.0/dt_norm];
     gamma_max_sigma ~ exponential(1.0);
 
-    rho_max_mu ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
-    rho_max_sigma ~ exponential(1.0);
+    rho_max_mu ~ normal(0.1, 0.01) T[0, 1.0/dt_norm];
+    rho_max_sigma ~ exponential(100.0);
     
     E_star_mu ~ normal(1000.0,1000.0) T[0,];
-    E_star_sigma ~ exponential(1.0);
+    E_star_sigma ~ exponential(0.001);
    
     for (iday in 1:ndays) {
         delta_max[iday] ~ normal(delta_max_mu, delta_max_sigma) T[0, 1.0/dt_days];
