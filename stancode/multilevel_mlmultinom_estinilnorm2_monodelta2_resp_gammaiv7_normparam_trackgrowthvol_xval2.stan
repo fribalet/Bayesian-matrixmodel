@@ -193,7 +193,7 @@ transformed parameters {
                     growth_vol_gain[it] += a * w_curr[i] * v_diff[i];
                 }
                 // fill (j-1)th superdiagonal (division)
-                IF (I >= J){
+                if (i >= j){
                     //A[i+1-j,i] = 2.0*delta_i;
                     a = 2.0*delta_i;
                     w_next[i+1-j] += a * w_curr[i];
