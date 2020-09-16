@@ -85,6 +85,7 @@ parameters {
 }
 transformed parameters {
     real divrate;
+    real divrate_daily[ndays];
     real<lower=0, upper=1.0/dt_days> delta[m-j+1];
     matrix<lower=0>[m,nt_obs] mod_obspos;
     real<lower=0> resp_vol_loss[nt];    // record volume loss due to respiration
@@ -95,6 +96,8 @@ transformed parameters {
         // helper variables
         vector[m] w_curr; 
         vector[m] w_next;
+        real sum_w_save;
+        int t_save;
         real delta_i = 0.0;
         real gamma;
         real a;
@@ -113,6 +116,9 @@ transformed parameters {
         }
         
         w_curr = w_ini;
+        // used for computing daily division
+        sum_w_save = sum(w_curr);
+        t_save = t[1];
 
         for (it in 1:nt){ // time-stepping loop
             // record current solution 
@@ -128,6 +134,11 @@ transformed parameters {
             }
             // increment iday
             if (t[it] > iday*1440){
+                // and compute daily division rate
+                divrate_daily[iday] = log(sum(w_curr)/sum_w_save)*60*24/(t[it]-t_save);
+                t_save = t[it];
+                sum_w_save = sum(w_curr);
+
                 iday += 1;
             }
             
@@ -182,7 +193,7 @@ transformed parameters {
                     growth_vol_gain[it] += a * w_curr[i] * v_diff[i];
                 }
                 // fill (j-1)th superdiagonal (division)
-                if (i >= j){
+                IF (I >= J){
                     //A[i+1-j,i] = 2.0*delta_i;
                     a = 2.0*delta_i;
                     w_next[i+1-j] += a * w_curr[i];
@@ -215,7 +226,7 @@ transformed parameters {
             // do not normalize population here
             w_curr = w_next;
         }
-        divrate = log(sum(w_curr))*60*24/(nt*dt); // daily division rate
+        divrate = log(sum(w_curr))*60*24/(nt*dt); // average division rate in units of days
     }
 }
 model {
