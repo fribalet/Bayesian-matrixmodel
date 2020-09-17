@@ -227,6 +227,7 @@ transformed parameters {
             w_curr = w_next;
         }
         divrate = log(sum(w_curr))*60*24/(nt*dt); // average division rate in units of days
+        divrate_daily[ndays] = log(sum(w_curr)/sum_w_save)*60*24/(t[nt]-t_save);
     }
 }
 model {
