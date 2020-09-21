@@ -149,12 +149,6 @@ transformed parameters {
                 if (i >= j){
                     delta_i = delta_max[iday] * delta[i-j+1] * dt_days;
                 }
-                // compute gamma_i
-                if (xi > 0){
-                    sizelim = exp(xi*(v[i]-v[m]));
-                } else {
-                    sizelim = exp(xi*(v[i]-v[1]));
-                }
                 
                 // fill superdiagonal (respiration)
                 if (i >= j){
