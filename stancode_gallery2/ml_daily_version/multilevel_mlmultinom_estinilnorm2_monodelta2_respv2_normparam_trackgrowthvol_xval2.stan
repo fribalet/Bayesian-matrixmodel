@@ -129,6 +129,16 @@ transformed parameters {
                     ito = 1;
                 }
             }
+            // increment iday
+            if (t[it] > iday*1440){
+                // and compute daily division rate
+                divrate_daily[iday] = log(sum(w_curr)/sum_w_save)*60*24/(t[it]-t_save);
+                t_save = t[it];
+                sum_w_save = sum(w_curr);
+
+                iday += 1;
+            }
+            
             
             // compute gamma and rho
             gamma = gamma_max[iday] * dt_norm * (1.0 - exp(-E[it]/E_star[iday])) - rho_max[iday] * dt_norm;
