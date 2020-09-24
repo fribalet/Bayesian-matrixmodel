@@ -140,13 +140,8 @@ transformed parameters {
             }
             
             // compute gamma and rho
-            gamma = gamma_max[iday] * dt_norm * (1.0 - exp(-E[it]/E_star[iday])) - rho_max[iday] * dt_norm;
-            if (gamma > 0){
-                rho = 0.0;
-            } else {
-                rho = -gamma;
-                gamma = 0.0;
-            }
+            gamma = gamma_max[iday] * dt_norm * (1.0 - exp(-E[it]/E_star[iday]));
+            rho = rho_max[iday] * dt_norm;
 
             w_next = rep_vector(0.0, m);
             resp_vol_loss[it] = 0.0;

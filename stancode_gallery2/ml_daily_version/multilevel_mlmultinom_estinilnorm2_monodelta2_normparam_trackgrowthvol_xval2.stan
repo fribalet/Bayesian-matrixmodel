@@ -72,9 +72,6 @@ parameters {
     real<lower=0> gamma_max_mu;
     real<lower=0> gamma_max_sigma;
     real<lower=0,upper=1.0/dt_norm> gamma_max[ndays];
-    real<lower=0> rho_max_mu;
-    real<lower=0> rho_max_sigma;
-    real<lower=0,upper=1.0/dt_norm> rho_max[ndays];
     real<lower=0> E_star_mu;
     real<lower=0> E_star_sigma; 
     real<lower=0, upper=5000> E_star[ndays]; 
@@ -139,14 +136,10 @@ transformed parameters {
                 iday += 1;
             }
             
-            // compute gamma and rho
-            gamma = gamma_max[iday] * dt_norm * (1.0 - exp(-E[it]/E_star[iday])) - rho_max[iday] * dt_norm;
-            if (gamma > 0){
-                rho = 0.0;
-            } else {
-                rho = -gamma;
-                gamma = 0.0;
-            }
+            // compute gamma
+            gamma = gamma_max[iday] * dt_norm * (1.0 - exp(-E[it]/E_star[iday]));
+            // set rho to zero (no respiration)
+            rho = 0.0;
 
             w_next = rep_vector(0.0, m);
             resp_vol_loss[it] = 0.0;
@@ -237,16 +230,12 @@ model {
     gamma_max_mu ~ normal(3.0, 1.0) T[0,1.0/dt_norm];
     gamma_max_sigma ~ exponential(1.0);
 
-    rho_max_mu ~ normal(0.1, 0.01) T[0, 1.0/dt_norm];
-    rho_max_sigma ~ exponential(100.0);
-    
     E_star_mu ~ normal(1000.0,1000.0) T[0,];
     E_star_sigma ~ exponential(0.001);
    
     for (iday in 1:ndays) {
         delta_max[iday] ~ normal(delta_max_mu, delta_max_sigma) T[0, 1.0/dt_days];
         gamma_max[iday] ~ normal(gamma_max_mu, gamma_max_sigma) T[0,1.0/dt_norm];
-        rho_max[iday] ~ normal(rho_max_mu, rho_max_sigma) T[0, 1.0/dt_norm];
         E_star[iday] ~ normal(E_star_mu, E_star_sigma) T[0,];
     }
 

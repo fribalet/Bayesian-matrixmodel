@@ -28,6 +28,7 @@ transformed data {
     int<lower=0> t[nt];     // vector of times in minutes since start 
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
+    real xi_max = 10.0;
 
     int ndays = 0;
 
@@ -79,6 +80,9 @@ parameters {
     real<lower=0> E_star_sigma; 
     real<lower=0, upper=5000> E_star[ndays]; 
     real<lower=1e-10> sigma; 
+    real<lower=-xi_max,upper=xi_max> xi;
+    real<lower=0> delta_lightthresh;
+    real<lower=0> delta_lightsigma;
     simplex[m] theta[nt_obs];
     simplex[m] w_ini;  // initial conditions
 }
@@ -101,6 +105,8 @@ transformed parameters {
         real gamma;
         real a;
         real rho;
+        real tmp;
+        real sizelim;
         real x;
         int ito = 1;
         int iday = 1;
@@ -139,15 +145,6 @@ transformed parameters {
                 iday += 1;
             }
             
-            // compute gamma and rho
-            gamma = gamma_max[iday] * dt_norm * (1.0 - exp(-E[it]/E_star[iday])) - rho_max[iday] * dt_norm;
-            if (gamma > 0){
-                rho = 0.0;
-            } else {
-                rho = -gamma;
-                gamma = 0.0;
-            }
-
             w_next = rep_vector(0.0, m);
             resp_vol_loss[it] = 0.0;
             growth_vol_gain[it] = 0.0;
@@ -156,8 +153,22 @@ transformed parameters {
             for (i in 1:m){ // size-class loop
                 // compute delta_i
                 if (i >= j){
-                    delta_i = delta_max[iday] * delta[i-j+1] * dt_days;
+                    if (E[it] < delta_lightthresh){
+                        delta_i = delta_max[iday] * delta[i-j+1] * dt_days;
+                    } else {
+                        delta_i = delta_max[iday] * delta[i-j+1] * dt_days * exp(-((E[it]-delta_lightthresh)/(100.0*delta_lightsigma))^2);
+                    }
                 }
+                // compute gamma_i
+                if (xi > 0){
+                    sizelim = exp(xi*(v[i]-v[m]));
+                } else {
+                    sizelim = exp(xi*(v[i]-v[1]));
+                }
+                gamma = gamma_max[iday] * sizelim * dt_norm * (1.0 - exp(-E[it]/E_star[iday]));
+                // compute rho_i
+                rho = dt_norm * rho_max[iday];
+
                 
                 // fill superdiagonal (respiration)
                 if (i >= j){
@@ -251,6 +262,9 @@ model {
     }
 
     sigma ~ lognormal(1000.0, 1000.0) T[1,];
+    xi ~ normal(0.0, 0.1);
+    delta_lightthresh ~ normal(10.0,10.0);
+    delta_lightsigma ~ normal(0.2,0.02);
 
     // fitting observations
     if (prior_only == 0){
