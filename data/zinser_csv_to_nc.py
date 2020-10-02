@@ -33,7 +33,7 @@ def read_csv(fname):
 
 import pandas
 
-data = read_csv('FSC_Array5_calibrated.csv')
+data = read_csv('FSC_Array5_logtransform.csv')
 # new: set initial time to zero
 data['t_min'] -= data['t_min'][0]
 
@@ -46,8 +46,9 @@ create_plots = True
 # specify v
 #
 
-v_min = 0.03
-#v_min = 0.27
+#v_min = 0.03
+v_min = 1
+v_max = 3.5
 #m = 20
 #delta_v_inv = 5
 m = 26 # 26 or 59
@@ -61,7 +62,9 @@ if len(sys.argv) > 1:
             v_min = float(sys.argv[3])
 
 delta_v = 1.0/delta_v_inv
-v = v_min * 2**(np.arange(m+1)*delta_v) # to get m intervals, we need m+1 edges
+#v = v_min * 2**(np.arange(m+1)*delta_v) # to get m intervals, we need m+1 edges
+
+v = np.linspace(v_min, v_max, m+1)# 
 
 if create_plots:
     fig,ax = plt.subplots()
@@ -146,7 +149,7 @@ if create_plots:
 # write to netCDF
 #
 
-fname = 'Zinser_SizeDist_calibrated-{}-{}.nc'.format(m, delta_v_inv)
+fname = 'Zinser_SizeDist_logtransform-{}-{}.nc'.format(m, delta_v_inv)
 with nc4.Dataset(fname,'w') as nc:
     nc.createDimension('time', w.shape[1])
     nc.createDimension('size', w.shape[0])
