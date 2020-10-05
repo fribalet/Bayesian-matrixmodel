@@ -48,11 +48,10 @@ create_plots = True
 
 #v_min = 0.03
 v_min = 1
-v_max = 3.5
 #m = 20
 #delta_v_inv = 5
 m = 26 # 26 or 59
-delta_v_inv = 6 # 6 or 7
+delta_v_inv = 13 # 6 or 7
 import sys
 if len(sys.argv) > 1:
     m = int(sys.argv[1])
@@ -62,9 +61,9 @@ if len(sys.argv) > 1:
             v_min = float(sys.argv[3])
 
 delta_v = 1.0/delta_v_inv
-#v = v_min * 2**(np.arange(m+1)*delta_v) # to get m intervals, we need m+1 edges
+v = v_min * 2**(np.arange(m+1)*delta_v) # to get m intervals, we need m+1 edges
 
-v = np.linspace(v_min, v_max, m+1)# 
+#v = np.linspace(v_min, v_max, m+1)# 
 
 if create_plots:
     fig,ax = plt.subplots()
