@@ -1,7 +1,7 @@
 # Model description
 
 ## Notes
- * Code compiles and converges well in initial tests.
+ * Code compiles and intial tests are underway. After testing is done, it is recommended to use gallery 3 code for the new data files.
 
 ## The model versions contained in gallery 3:
 `m1`:`matrixmodel_mlmultinom_estinilnorm2_freedelta_normparam_trackgrowthvol_xval2.stan`
