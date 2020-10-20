@@ -283,11 +283,11 @@ model {
     
     // priors
     
-     delta_max ~ normal(23, 5) T[0, 1.0/dt_days]; // copied from exp_zs_20200701_g2_ext results
+    delta_max ~ normal(60, 8) T[0, 1.0/dt_days]; // based on exp_zs_20201009_g3_newzinser-25-7 results
     delta_incr ~ normal(mu_delta_incr, sigma_delta_incr); 
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
-    rho_max ~ normal(3, 1) T[0, 1.0/dt_norm]; // copied from exp_zs_20200701_g2_ext results
-    E_star ~ normal(125, 22) T[0,]; // copied from exp_zs_20200701_g2_ext results
+    rho_max ~ normal(1, 0.1) T[0, 1.0/dt_norm]; // based on exp_zs_20201009_g3_newzinser-25-7 results
+    E_star ~ normal(327, 29) T[0,]; // based on exp_zs_20201009_g3_newzinser-25-7 results
     sigma ~ lognormal(1000.0, 1000.0) T[1,];
     
     // fitting observations
