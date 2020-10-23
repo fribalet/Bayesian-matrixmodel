@@ -1,7 +1,7 @@
 # Model description
 
 ## Notes
- * Code compiles and intial tests are underway. After testing is done, it is recommended to use gallery 3 code for the new data files.
+ * Code compiles and intial tests are *again* underway. After testing is done, it is recommended to use gallery 3 code for the new data files.
 
 ## The model versions contained in gallery 3:
 `m1`:`matrixmodel_mlmultinom_estinilnorm2_freedelta_normparam_trackgrowthvol_xval2.stan`
@@ -25,21 +25,27 @@ The main change only affects model with either size-dependent growth or respirat
 ```
 // compute size-dependent gamma and rho
 if (xi > 0){
-    sizelim = exp(xi*(v[i]-v[m]));
+    sizelim = exp(xi*(v_mid[i]-v_mid[m]));
 } else {
-    sizelim = exp(xi*(v[i]-v[1]));
+    sizelim = exp(xi*(v_mid[i]-v_mid[1]));
 }
 ```
 it is now based on the _relative_ difference:
 ```
 // compute size-dependent gamma and rho
 if (xi > 0){
-    sizelim = exp(xi*(v[i]-v[m])/(v[m]-v[1]));
+    sizelim = exp(xi*(v_mid[i]-v_mid[m])/(v_mid[m]-v_mid[1]));
 } else {
-    sizelim = exp(xi*(v[i]-v[1])/(v[m]-v[1]));
+    sizelim = exp(xi*(v_mid[i]-v_mid[1])/(v_mid[m]-v_mid[1]));
 }
 ```
-This change makes the prior of `xi` (and `xir` for respiration) less dependent on changes in `v`.
+This change makes the prior of `xi` (and `xir` for respiration) less dependent on changes in `v`. Note that the updated code now also uses `v_mid` for size-dependence and not `v`. `v_mid` is defined as:
+```
+for (i in 1:m){
+    // using geometric mean
+    v_mid[i] = sqrt(v[i] * v[i+1]);
+}
+```
 
 **Note:** Size limits are also pre-computed more efficiently now.
 
