@@ -18,7 +18,6 @@ data {
 }
 transformed data {
     int j;
-    real v_max;
     real v_range;
     real<lower=0> delta_v;
     real<lower=0> dt_days;  // dt in units of days
@@ -38,14 +37,14 @@ transformed data {
     for (i in 1:m+1){
         v[i] = v_min*2^((i-1)*delta_v);
     }
-    v_max = v[m];
-    v_range = v_max-v_min;
     for (i in 1:m){
-        v_mid[i] = 0.5*(v[i]+v[i+1]);
+        // using geometric mean
+        v_mid[i] = sqrt(v[i] * v[i+1]);
     }
+    v_range = v_mid[m]-v_mid[1];
     for (i in 1:m-1){
         // difference between the centers for each class
-        v_diff[i] = 0.5*(v[i+2]-v[i]); 
+        v_diff[i] = 0.5*(v_mid[i+1]-v_mid[i]);
     }
     // populate time vector
     t[1] = 0;
@@ -104,20 +103,20 @@ transformed parameters {
         // pre-compute size-limitations
         if (xi > 0){
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = exp(xi*(v[i]-v[m])/v_range);   
+                sizelim_gamma[i] = exp(xi*(v_mid[i]-v_mid[m])/v_range);
             }
         } else {
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = exp(xi*(v[i]-v[1])/v_range);
+                sizelim_gamma[i] = exp(xi*(v_mid[i]-v_mid[1])/v_range);
             }
         }
         if (xir > 0){
             for (i in 1:m){ // size-class loop
-                sizelim_rho[i] = exp(xir*(v[i]-v[m])/v_range);   
+                sizelim_rho[i] = exp(xir*(v_mid[i]-v_mid[m])/v_range);
             }
         } else {
             for (i in 1:m){ // size-class loop
-                sizelim_rho[i] = exp(xir*(v[i]-v[1])/v_range);
+                sizelim_rho[i] = exp(xir*(v_mid[i]-v_mid[1])/v_range);
             }
         }
 
