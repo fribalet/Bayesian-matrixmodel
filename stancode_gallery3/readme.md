@@ -1,6 +1,7 @@
-# Model description
+# Model description *do not use models right now*
 
 ## Notes
+ * Some modifications will likely be introduced to some of the models to change the size-dependence formulation. 
  * Code compiles and intial tests are underway. After testing is done, it is recommended to use gallery 3 code for the new data files.
 
 ## The model versions contained in gallery 3:
