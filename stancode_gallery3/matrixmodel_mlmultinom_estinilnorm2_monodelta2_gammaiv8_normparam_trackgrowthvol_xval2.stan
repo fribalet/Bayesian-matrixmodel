@@ -67,7 +67,7 @@ parameters {
     real<lower=0,upper=1.0/dt_norm> gamma_max;
     real<lower=0, upper=5000> E_star; 
     real<lower=1e-10> sigma; 
-    real<lower=-beta_max,upper=beta_max> beta;
+    real<lower=-beta_max,upper=beta_max> beta_gamma;
     simplex[m] theta[nt_obs];
     simplex[m] w_ini;  // initial conditions
 }
@@ -98,13 +98,13 @@ transformed parameters {
         }
         
         // pre-compute size-limitations
-        if (beta > 0){
+        if (beta_gamma > 0){
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = (v_mid[i]^beta)/(v_mid[m]^beta);
+                sizelim_gamma[i] = (v_mid[i]^beta_gamma)/(v_mid[m]^beta_gamma);
             }
         } else {
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = (v_mid[i]^beta)/(v_mid[1]^beta);
+                sizelim_gamma[i] = (v_mid[i]^beta_gamma)/(v_mid[1]^beta_gamma);
             }
         }
 
@@ -212,7 +212,7 @@ model {
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
     sigma ~ lognormal(1000.0, 1000.0) T[1,];
-    beta ~ normal(0.0, 0.1);
+    beta_gamma ~ normal(0.0, 0.1);
 
     // fitting observations
     if (prior_only == 0){
