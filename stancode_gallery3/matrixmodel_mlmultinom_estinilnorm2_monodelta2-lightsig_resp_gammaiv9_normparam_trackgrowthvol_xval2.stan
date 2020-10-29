@@ -28,7 +28,7 @@ transformed data {
     int<lower=0> t[nt];     // vector of times in minutes since start 
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
-    real beta_max = 1.0;
+    real exponent_max = 1.0;
 
     j = 1 + delta_v_inv; 
     delta_v = 1.0/delta_v_inv;
@@ -68,7 +68,7 @@ parameters {
     real<lower=0,upper=1.0/dt_norm> rho_max; 
     real<lower=0, upper=5000> E_star; 
     real<lower=1e-10> sigma; 
-    real<lower=-beta_max,upper=beta_max> beta_gamma;
+    real<lower=-exponent_max,upper=exponent_max> exponent_gamma;
     real<lower=0> delta_lightthresh;
     real<lower=0> delta_lightsigma;
     simplex[m] theta[nt_obs];
@@ -101,13 +101,13 @@ transformed parameters {
         }
         
         // pre-compute size-limitations
-        if (beta_gamma > 0){
+        if (exponent_gamma > 0){
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = (v_mid[i]^beta_gamma)/(v_mid[m]^beta_gamma);
+                sizelim_gamma[i] = (v_mid[i]^exponent_gamma)/(v_mid[m]^exponent_gamma);
             }
         } else {
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = (v_mid[i]^beta_gamma)/(v_mid[1]^beta_gamma);
+                sizelim_gamma[i] = (v_mid[i]^exponent_gamma)/(v_mid[1]^exponent_gamma);
             }
         }
 
@@ -220,7 +220,7 @@ model {
     rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
     sigma ~ lognormal(1000.0, 1000.0) T[1,];
-    beta_gamma ~ normal(0.0, 0.1);
+    exponent_gamma ~ normal(0.0, 0.1);
     delta_lightthresh ~ normal(10.0,10.0);
     delta_lightsigma ~ normal(0.2,0.02);
 
