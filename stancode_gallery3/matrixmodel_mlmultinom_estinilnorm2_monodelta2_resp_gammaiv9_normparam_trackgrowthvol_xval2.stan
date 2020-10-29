@@ -28,7 +28,7 @@ transformed data {
     int<lower=0> t[nt];     // vector of times in minutes since start 
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
-    real xi_max = 1.0;
+    real beta_max = 1.0;
 
     j = 1 + delta_v_inv; 
     delta_v = 1.0/delta_v_inv;
@@ -68,7 +68,7 @@ parameters {
     real<lower=0,upper=1.0/dt_norm> rho_max; 
     real<lower=0, upper=5000> E_star; 
     real<lower=1e-10> sigma; 
-    real<lower=-xi_max,upper=xi_max> xi;
+    real<lower=-beta_max,upper=beta_max> beta;
     simplex[m] theta[nt_obs];
     simplex[m] w_ini;  // initial conditions
 }
@@ -99,13 +99,13 @@ transformed parameters {
         }
         
         // pre-compute size-limitations
-        if (xi > 0){
+        if (beta > 0){
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = (v_mid[i]^xi)/(v_mid[m]^xi);
+                sizelim_gamma[i] = (v_mid[i]^beta)/(v_mid[m]^beta);
             }
         } else {
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = (v_mid[i]^xi)/(v_mid[1]^xi);
+                sizelim_gamma[i] = (v_mid[i]^beta)/(v_mid[1]^beta);
             }
         }
 
@@ -214,7 +214,7 @@ model {
     rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
     sigma ~ lognormal(1000.0, 1000.0) T[1,];
-    xi ~ normal(0.0, 0.1);
+    beta ~ normal(0.0, 0.1);
 
     // fitting observations
     if (prior_only == 0){
