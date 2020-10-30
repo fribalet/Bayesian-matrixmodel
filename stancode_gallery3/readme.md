@@ -18,10 +18,28 @@
 `m12`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_resp_gammaiv7_normparam_trackgrowthvol_xval2.stan`
 `m13`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_resp_gammaiv6_normparam_trackgrowthvol_xval2.stan`
 `m14`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_resp_gammaiv7_normparam_trackgrowthvol_xval2.stan`
+`m3u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_gammaiv8_normparam_trackgrowthvol_xval2.stan`
+`m6u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_respiv8_normparam_trackgrowthvol_xval2.stan`
+`m7u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_respiv9_normparam_trackgrowthvol_xval2.stan`
+`m8u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_respiv8_normparam_trackgrowthvol_xval2.stan`
+`m9u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_respiv9_normparam_trackgrowthvol_xval2.stan`
+`m11u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_resp_gammaiv8_normparam_trackgrowthvol_xval2.stan`
+`m12u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_resp_gammaiv9_normparam_trackgrowthvol_xval2.stan`
+`m13u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_resp_gammaiv8_normparam_trackgrowthvol_xval2.stan`
+`m14u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_resp_gammaiv9_normparam_trackgrowthvol_xval2.stan`
 
 ## Changes compared to gallery 2
 
-The main change only affects model with either size-dependent growth or respiration. While size limits were previously computed based on the absolute size difference between the size classes:
+The main change only affects model with either size-dependent growth or respiration. Gallery 2 only contained exponential size relationships, the updated code in gallery 3 (denoted by a `u` in the name) contains power law relationships.
+```
+if (exponent > 0){
+    sizelim = (v_mid[i]^exponent)/(v_mid[m]^exponent);
+} else {
+    sizelim = (v_mid[i]^exponent)/(v_mid[1]^exponent);
+}
+
+```
+The old exponential relationships have also been updated: while size limits were previously computed based on the absolute size difference between the size classes:
 ```
 // compute size-dependent gamma and rho
 if (xi > 0){
@@ -73,6 +91,15 @@ for (i in 1:m){
 |`m12`    | ✓          | monotonic   | ✓   |     | ✓   |     |     | `resp_gammaiv7`            |
 |`m13`    |            | monotonic   | ✓   |     | ✓   | ✓   | ✓   | `resp_gammaiv6`            |
 |`m14`    | ✓          | monotonic   | ✓   |     | ✓   | ✓   |     | `resp_gammaiv7`            |
+|`m3u`    |            | monotonic   |     |     | ✓   |     |     | `gammaiv8`                 |
+|`m6u`    |            | monotonic   | ✓   | ✓   | ✓   |     | ✓   | `respiv8`                  |
+|`m7u`    |            | monotonic   | ✓   | ✓   | ✓   |     |     | `respiv9`                  |
+|`m8u`    |            | monotonic   | ✓   | ✓   | ✓   | ✓   | ✓   | `respiv8`                  |
+|`m9u`    |            | monotonic   | ✓   | ✓   | ✓   | ✓   |     | `respiv9`                  |
+|`m11u`   |            | monotonic   | ✓   |     | ✓   |     | ✓   | `resp_gammaiv8`            |
+|`m12u`   |            | monotonic   | ✓   |     | ✓   |     |     | `resp_gammaiv9`            |
+|`m13u`   |            | monotonic   | ✓   |     | ✓   | ✓   | ✓   | `resp_gammaiv8`            |
+|`m14u`   |            | monotonic   | ✓   |     | ✓   | ✓   |     | `resp_gammaiv9`            |
 
 <a name="corefootnote">[1]</a> Based on discussion on 2020-09-01.
 
