@@ -211,6 +211,8 @@ model {
     }
 }
 generated quantities{
+    // This block generates samples from the posterior predictive distribution.
+    // For each draw from the posterior, we draw a size distribution from the model.
     int yhat[m, nt_obs];
     for (it in 1:nt_obs){
         yhat[:, it] = multinomial_rng(dirichlet_rng(mod_obspos[:,it]/sum(mod_obspos[:,it]) * sigma + 1), sum(obs_count[:, it]));
