@@ -213,7 +213,6 @@ model {
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
     rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
-    sigma ~ lognormal(1000.0, 1000.0) T[1,];
     exponent_gamma ~ normal(0.0, 0.1);
 
     // fitting observations
