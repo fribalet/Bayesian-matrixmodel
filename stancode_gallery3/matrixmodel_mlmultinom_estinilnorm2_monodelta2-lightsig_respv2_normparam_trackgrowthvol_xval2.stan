@@ -41,7 +41,7 @@ transformed data {
     }
     for (i in 1:m-1){
         // difference between the centers for each class
-        v_diff[i] = 0.5*(v_mid[i+1]-v_mid[i]);
+        v_diff[i] = v_mid[i+1] - v_mid[i];
     }
     // populate time vector
     t[1] = 0;
@@ -208,7 +208,6 @@ model {
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
     rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
-    sigma ~ lognormal(1000.0, 1000.0) T[1,];
     delta_lightthresh ~ normal(10.0,10.0);
     delta_lightsigma ~ normal(0.2,0.02);
 

@@ -18,7 +18,6 @@ data {
 }
 transformed data {
     int j;
-    real v_range;
     real<lower=0> delta_v;
     real<lower=0> dt_days;  // dt in units of days
     real<lower=0> dt_norm;  // dt in units of days and doublings
@@ -28,7 +27,6 @@ transformed data {
     int<lower=0> t[nt];     // vector of times in minutes since start 
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
-    real xi_max = 10.0;
 
     j = 1 + delta_v_inv; 
     delta_v = 1.0/delta_v_inv;
@@ -41,10 +39,9 @@ transformed data {
         // using geometric mean
         v_mid[i] = sqrt(v[i] * v[i+1]);
     }
-    v_range = v_mid[m]-v_mid[1];
     for (i in 1:m-1){
         // difference between the centers for each class
-        v_diff[i] = v_mid[i+1] - v_mid[i];
+        v_diff[i] = 0.5*(v_mid[i+1]-v_mid[i]);
     }
     // populate time vector
     t[1] = 0;
@@ -67,9 +64,7 @@ parameters {
     real<lower=0,upper=1.0/dt_norm> gamma_max;
     real<lower=0,upper=1.0/dt_norm> rho_max; 
     real<lower=0, upper=5000> E_star; 
-    real<lower=1e-10> sigma; 
-    real<lower=-xi_max,upper=xi_max> xi;
-    real<lower=-xi_max,upper=xi_max> xir;
+    real<lower=0> omega; 
     simplex[m] theta[nt_obs];
     simplex[m] w_ini;  // initial conditions
 }
@@ -89,8 +84,6 @@ transformed parameters {
         real gamma;
         real a;
         real rho;
-        real sizelim_gamma[m];
-        real sizelim_rho[m];
         real x;
         int ito = 1;
       
@@ -100,26 +93,6 @@ transformed parameters {
             delta[i+1] = delta[i] + delta_incr[i+1] * delta_max;
         }
         
-        // pre-compute size-limitations
-        if (xi > 0){
-            for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = exp(xi*(v_mid[i]-v_mid[m])/v_range);
-            }
-        } else {
-            for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = exp(xi*(v_mid[i]-v_mid[1])/v_range);
-            }
-        }
-        if (xir > 0){
-            for (i in 1:m){ // size-class loop
-                sizelim_rho[i] = exp(xir*(v_mid[i]-v_mid[m])/v_range);
-            }
-        } else {
-            for (i in 1:m){ // size-class loop
-                sizelim_rho[i] = exp(xir*(v_mid[i]-v_mid[1])/v_range);
-            }
-        }
-
         w_curr = w_ini;
 
         for (it in 1:nt){ // time-stepping loop
@@ -135,6 +108,10 @@ transformed parameters {
                 }
             }
             
+            // compute gamma and rho
+            gamma = gamma_max * dt_norm * (1.0 - exp(-E[it]/E_star));
+            rho = rho_max * dt_norm;
+
             w_next = rep_vector(0.0, m);
             resp_size_loss[it] = 0.0;
             growth_size_gain[it] = 0.0;
@@ -145,10 +122,6 @@ transformed parameters {
                 if (i >= j){
                     delta_i = delta[i-j+1] * dt_days;
                 }
-                // compute gamma_i
-                gamma = dt_norm * sizelim_gamma[i] * gamma_max * (1.0 - exp(-E[it]/E_star));
-                // compute rho_i
-                rho = dt_norm * sizelim_rho[i] * rho_max;
                 
                 // fill superdiagonal (respiration)
                 if (i >= j){
@@ -224,14 +197,14 @@ model {
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
     rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
-    xi ~ normal(0.0, 0.1);
-    xir ~ normal(0.0, 0.1);
+    //sigma ~ lognormal(1000.0, 1000.0) T[1,];
+    omega ~ uniform(0.0, 2.0);
 
     // fitting observations
     if (prior_only == 0){
         for (it in 1:nt_obs){
             if(i_test[it] == 0){
-                alpha = mod_obspos[:,it]/sum(mod_obspos[:,it]) * sigma + 1;
+                alpha = mod_obspos[:,it]/sum(mod_obspos[:, it]) * omega * sum(obs_count[:, it]) + 1;
                 theta[it] ~ dirichlet(alpha);
                 obs_count[:,it] ~ multinomial(theta[it]);
             }

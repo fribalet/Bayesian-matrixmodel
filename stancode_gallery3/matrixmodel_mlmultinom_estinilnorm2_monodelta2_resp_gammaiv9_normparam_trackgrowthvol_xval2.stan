@@ -28,7 +28,7 @@ transformed data {
     int<lower=0> t[nt];     // vector of times in minutes since start 
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
-    real xi_max = 10.0;
+    real exponent_max = 1.0;
 
     j = 1 + delta_v_inv; 
     delta_v = 1.0/delta_v_inv;
@@ -68,8 +68,7 @@ parameters {
     real<lower=0,upper=1.0/dt_norm> rho_max; 
     real<lower=0, upper=5000> E_star; 
     real<lower=1e-10> sigma; 
-    real<lower=-xi_max,upper=xi_max> xi;
-    real<lower=-xi_max,upper=xi_max> xir;
+    real<lower=-exponent_max,upper=exponent_max> exponent_gamma;
     simplex[m] theta[nt_obs];
     simplex[m] w_ini;  // initial conditions
 }
@@ -77,9 +76,9 @@ transformed parameters {
     real divrate;
     real<lower=0, upper=1.0/dt_days> delta[m-j+1];
     matrix<lower=0>[m,nt_obs] mod_obspos;
-    real<lower=0> resp_size_loss[nt];   //record size loss due to respiration
-    real<lower=0> growth_size_gain[nt]; //record size gain due to cell growth
-    real<lower=0> total_size[nt];       //record total size
+    real<lower=0> resp_size_loss[nt];   // record size loss due to respiration
+    real<lower=0> growth_size_gain[nt]; // record size gain due to cell growth
+    real<lower=0> total_size[nt];       // record total size
     real<lower=0> cell_count[nt];       // record relative cell count for each time step 
     {
         // helper variables
@@ -90,7 +89,6 @@ transformed parameters {
         real a;
         real rho;
         real sizelim_gamma[m];
-        real sizelim_rho[m];
         real x;
         int ito = 1;
       
@@ -101,22 +99,13 @@ transformed parameters {
         }
         
         // pre-compute size-limitations
-        if (xi > 0){
+        if (exponent_gamma > 0){
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = exp(xi*(v_mid[i]-v_mid[m])/v_range);
+                sizelim_gamma[i] = (v_mid[i]^exponent_gamma)/(v_mid[m]^exponent_gamma);
             }
         } else {
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = exp(xi*(v_mid[i]-v_mid[1])/v_range);
-            }
-        }
-        if (xir > 0){
-            for (i in 1:m){ // size-class loop
-                sizelim_rho[i] = exp(xir*(v_mid[i]-v_mid[m])/v_range);
-            }
-        } else {
-            for (i in 1:m){ // size-class loop
-                sizelim_rho[i] = exp(xir*(v_mid[i]-v_mid[1])/v_range);
+                sizelim_gamma[i] = (v_mid[i]^exponent_gamma)/(v_mid[1]^exponent_gamma);
             }
         }
 
@@ -148,7 +137,7 @@ transformed parameters {
                 // compute gamma_i
                 gamma = dt_norm * sizelim_gamma[i] * gamma_max * (1.0 - exp(-E[it]/E_star));
                 // compute rho_i
-                rho = dt_norm * sizelim_rho[i] * rho_max;
+                rho = dt_norm * rho_max;
                 
                 // fill superdiagonal (respiration)
                 if (i >= j){
@@ -224,8 +213,7 @@ model {
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
     rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
-    xi ~ normal(0.0, 0.1);
-    xir ~ normal(0.0, 0.1);
+    exponent_gamma ~ normal(0.0, 0.1);
 
     // fitting observations
     if (prior_only == 0){
