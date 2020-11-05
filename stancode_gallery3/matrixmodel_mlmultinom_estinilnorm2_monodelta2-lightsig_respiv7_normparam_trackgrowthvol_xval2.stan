@@ -44,7 +44,7 @@ transformed data {
     v_range = v_mid[m]-v_mid[1];
     for (i in 1:m-1){
         // difference between the centers for each class
-        v_diff[i] = 0.5*(v_mid[i+1]-v_mid[i]);
+        v_diff[i] = v_mid[i+1] - v_mid[i];
     }
     // populate time vector
     t[1] = 0;
