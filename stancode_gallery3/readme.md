@@ -1,7 +1,7 @@
 # Model description
 
 ## Notes
- * Code compiles and intial tests are underway. After testing is done, it is recommended to use gallery 3 code for the new data files.
+ * Code compiles and intial tests are *again* underway. After testing is done, it is recommended to use gallery 3 code for the new data files.
 
 ## The model versions contained in gallery 3:
 `m1`:`matrixmodel_mlmultinom_estinilnorm2_freedelta_normparam_trackgrowthvol_xval2.stan`
@@ -18,28 +18,54 @@
 `m12`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_resp_gammaiv7_normparam_trackgrowthvol_xval2.stan`
 `m13`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_resp_gammaiv6_normparam_trackgrowthvol_xval2.stan`
 `m14`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_resp_gammaiv7_normparam_trackgrowthvol_xval2.stan`
+`m3u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_gammaiv8_normparam_trackgrowthvol_xval2.stan`
+`m6u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_respiv8_normparam_trackgrowthvol_xval2.stan`
+`m7u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_respiv9_normparam_trackgrowthvol_xval2.stan`
+`m8u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_respiv8_normparam_trackgrowthvol_xval2.stan`
+`m9u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_respiv9_normparam_trackgrowthvol_xval2.stan`
+`m11u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_resp_gammaiv8_normparam_trackgrowthvol_xval2.stan`
+`m12u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_resp_gammaiv9_normparam_trackgrowthvol_xval2.stan`
+`m13u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_resp_gammaiv8_normparam_trackgrowthvol_xval2.stan`
+`m14u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_resp_gammaiv9_normparam_trackgrowthvol_xval2.stan`
+`m15`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_resp_freegamma_normparam_trackgrowthvol_xval2.stan`
+`m16`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_freeresp_freegamma_normparam_trackgrowthvol_xval2.stan`
 
 ## Changes compared to gallery 2
 
-The main change only affects model with either size-dependent growth or respiration. While size limits were previously computed based on the absolute size difference between the size classes:
+The main change only affects model with either size-dependent growth or respiration. Gallery 2 only contained exponential size relationships, the updated code in gallery 3 (denoted by a `u` in the name) contains power law relationships.
+```
+if (exponent > 0){
+    sizelim = (v_mid[i]^exponent)/(v_mid[m]^exponent);
+} else {
+    sizelim = (v_mid[i]^exponent)/(v_mid[1]^exponent);
+}
+
+```
+The old exponential relationships have also been updated: while size limits were previously computed based on the absolute size difference between the size classes:
 ```
 // compute size-dependent gamma and rho
 if (xi > 0){
-    sizelim = exp(xi*(v[i]-v[m]));
+    sizelim = exp(xi*(v_mid[i]-v_mid[m]));
 } else {
-    sizelim = exp(xi*(v[i]-v[1]));
+    sizelim = exp(xi*(v_mid[i]-v_mid[1]));
 }
 ```
 it is now based on the _relative_ difference:
 ```
 // compute size-dependent gamma and rho
 if (xi > 0){
-    sizelim = exp(xi*(v[i]-v[m])/(v[m]-v[1]));
+    sizelim = exp(xi*(v_mid[i]-v_mid[m])/(v_mid[m]-v_mid[1]));
 } else {
-    sizelim = exp(xi*(v[i]-v[1])/(v[m]-v[1]));
+    sizelim = exp(xi*(v_mid[i]-v_mid[1])/(v_mid[m]-v_mid[1]));
 }
 ```
-This change makes the prior of `xi` (and `xir` for respiration) less dependent on changes in `v`.
+This change makes the prior of `xi` (and `xir` for respiration) less dependent on changes in `v`. Note that the updated code now also uses `v_mid` for size-dependence and not `v`. `v_mid` is defined as:
+```
+for (i in 1:m){
+    // using geometric mean
+    v_mid[i] = sqrt(v[i] * v[i+1]);
+}
+```
 
 **Note:** Size limits are also pre-computed more efficiently now.
 
@@ -67,6 +93,15 @@ This change makes the prior of `xi` (and `xir` for respiration) less dependent o
 |`m12`    | ✓          | monotonic   | ✓   |     | ✓   |     |     | `resp_gammaiv7`            |
 |`m13`    |            | monotonic   | ✓   |     | ✓   | ✓   | ✓   | `resp_gammaiv6`            |
 |`m14`    | ✓          | monotonic   | ✓   |     | ✓   | ✓   |     | `resp_gammaiv7`            |
+|`m3u`    |            | monotonic   |     |     | ✓   |     |     | `gammaiv8`                 |
+|`m6u`    |            | monotonic   | ✓   | ✓   | ✓   |     | ✓   | `respiv8`                  |
+|`m7u`    |            | monotonic   | ✓   | ✓   | ✓   |     |     | `respiv9`                  |
+|`m8u`    |            | monotonic   | ✓   | ✓   | ✓   | ✓   | ✓   | `respiv8`                  |
+|`m9u`    |            | monotonic   | ✓   | ✓   | ✓   | ✓   |     | `respiv9`                  |
+|`m11u`   |            | monotonic   | ✓   |     | ✓   |     | ✓   | `resp_gammaiv8`            |
+|`m12u`   |            | monotonic   | ✓   |     | ✓   |     |     | `resp_gammaiv9`            |
+|`m13u`   |            | monotonic   | ✓   |     | ✓   | ✓   | ✓   | `resp_gammaiv8`            |
+|`m14u`   |            | monotonic   | ✓   |     | ✓   | ✓   |     | `resp_gammaiv9`            |
 
 <a name="corefootnote">[1]</a> Based on discussion on 2020-09-01.
 

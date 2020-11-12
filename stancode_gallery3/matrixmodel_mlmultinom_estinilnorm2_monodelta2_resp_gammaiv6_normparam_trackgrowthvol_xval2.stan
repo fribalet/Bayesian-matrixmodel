@@ -18,7 +18,6 @@ data {
 }
 transformed data {
     int j;
-    real v_max;
     real v_range;
     real<lower=0> delta_v;
     real<lower=0> dt_days;  // dt in units of days
@@ -38,14 +37,14 @@ transformed data {
     for (i in 1:m+1){
         v[i] = v_min*2^((i-1)*delta_v);
     }
-    v_max = v[m];
-    v_range = v_max-v_min;
     for (i in 1:m){
-        v_mid[i] = 0.5*(v[i]+v[i+1]);
+        // using geometric mean
+        v_mid[i] = sqrt(v[i] * v[i+1]);
     }
+    v_range = v_mid[m]-v_mid[1];
     for (i in 1:m-1){
         // difference between the centers for each class
-        v_diff[i] = 0.5*(v[i+2]-v[i]); 
+        v_diff[i] = v_mid[i+1] - v_mid[i];
     }
     // populate time vector
     t[1] = 0;
@@ -77,9 +76,9 @@ transformed parameters {
     real divrate;
     real<lower=0, upper=1.0/dt_days> delta[m-j+1];
     matrix<lower=0>[m,nt_obs] mod_obspos;
-    real<lower=0> resp_vol_loss[nt];    // record volume loss due to respiration
-    real<lower=0> growth_vol_gain[nt];  // record volume gain due to cell growth
-    real<lower=0> total_vol[nt];        // record total volume
+    real<lower=0> resp_size_loss[nt];   //record size loss due to respiration
+    real<lower=0> growth_size_gain[nt]; //record size gain due to cell growth
+    real<lower=0> total_size[nt];       //record total size
     real<lower=0> cell_count[nt];       // record relative cell count for each time step 
     {
         // helper variables
@@ -102,11 +101,11 @@ transformed parameters {
         // pre-compute size-limitations
         if (xi > 0){
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = exp(xi*(v[i]-v[m])/v_range);   
+                sizelim_gamma[i] = exp(xi*(v_mid[i]-v_mid[m])/v_range);
             }
         } else {
             for (i in 1:m){ // size-class loop
-                sizelim_gamma[i] = exp(xi*(v[i]-v[1])/v_range);
+                sizelim_gamma[i] = exp(xi*(v_mid[i]-v_mid[1])/v_range);
             }
         }
 
@@ -120,15 +119,15 @@ transformed parameters {
                 ito += 1;
                 if (ito > nt_obs){
                     // just needs to be a valid index
-                    // cannot use break because resp_vol_loss needs to be recorded
+                    // cannot use break because resp_size_loss needs to be recorded
                     ito = 1;
                 }
             }
             
             w_next = rep_vector(0.0, m);
-            resp_vol_loss[it] = 0.0;
-            growth_vol_gain[it] = 0.0;
-            total_vol[it] = v_mid * w_curr;
+            resp_size_loss[it] = 0.0;
+            growth_size_gain[it] = 0.0;
+            total_size[it] = v_mid * w_curr;
             cell_count[it] = sum(w_curr);
             for (i in 1:m){ // size-class loop
                 // compute delta_i
@@ -150,29 +149,29 @@ transformed parameters {
                     //A[i-1,i] = rho * (1.0-delta_i);
                     a = rho * (1.0-delta_i);
                     w_next[i-1] += a * w_curr[i];
-                    resp_vol_loss[it] += a * w_curr[i] * v_diff[i-1];
+                    resp_size_loss[it] += a * w_curr[i] * v_diff[i-1];
                 } else if (i > 1){
                     //A[i-1,i] = rho;
                     a = rho;
                     w_next[i-1] += a * w_curr[i];
-                    resp_vol_loss[it] += a * w_curr[i] * v_diff[i-1];
+                    resp_size_loss[it] += a * w_curr[i] * v_diff[i-1];
                 }
                 // fill subdiagonal (growth)
                 if (i == 1){
                     //A[i+1,i] = gamma;
                     a = gamma;
                     w_next[i+1] += a * w_curr[i];
-                    growth_vol_gain[it] += a * w_curr[i] * v_diff[i];
+                    growth_size_gain[it] += a * w_curr[i] * v_diff[i];
                 } else if (i < j){
                     //A[i+1,i] = gamma * (1.0-rho);
                     a = gamma * (1.0-rho);
                     w_next[i+1] += a * w_curr[i];
-                    growth_vol_gain[it] += a * w_curr[i] * v_diff[i];
+                    growth_size_gain[it] += a * w_curr[i] * v_diff[i];
                 } else if (i < m){
                     //A[i+1,i] = gamma * (1.0-delta_i) * (1.0-rho);
                     a = gamma * (1.0-delta_i) * (1.0-rho);
                     w_next[i+1] += a * w_curr[i];
-                    growth_vol_gain[it] += a * w_curr[i] * v_diff[i];
+                    growth_size_gain[it] += a * w_curr[i] * v_diff[i];
                 }
                 // fill (j-1)th superdiagonal (division)
                 if (i >= j){
@@ -219,7 +218,6 @@ model {
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
     rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
-    sigma ~ lognormal(1000.0, 1000.0) T[1,];
     xi ~ normal(0.0, 0.1);
 
     // fitting observations
