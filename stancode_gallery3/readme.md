@@ -29,6 +29,10 @@
 `m14u`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2-lightsig_resp_gammaiv9_normparam_trackgrowthvol_xval2.stan`
 `m15`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_resp_freegamma_normparam_trackgrowthvol_xval2.stan`
 `m16`:`matrixmodel_mlmultinom_estinilnorm2_monodelta2_freeresp_freegamma_normparam_trackgrowthvol_xval2.stan`
+`m4s6`:`../g3_timedep/matrixmodel_mlmultinom_estinilnorm2_monodelta2-timespline_respv1_normparam_trackgrowthvol_xval2.stan`
+`c12us`:`../g3_timedep/matrixmodel_mlmultinom_estinilnorm2_monodelta2-timespline_resp_gammaiv9_normparam_trackgrowthvol_xval2.stan`,
+`c15s`:`../g3_timedep/matrixmodel_mlmultinom_estinilnorm2_monodelta2-timespline_resp_freegamma_normparam_trackgrowthvol_xval2.stan`,
+`c16s`:`../g3_timedep/matrixmodel_mlmultinom_estinilnorm2_monodelta2-timespline_freeresp_freegamma_normparam_trackgrowthvol_xval2.stan`,
 
 ## Changes compared to gallery 2
 
@@ -77,31 +81,37 @@ for (i in 1:m){
 
 ## Model differences:
 
-| version | core model <sup>[\[1\]](#corefootnote) | `delta_max` | using respiration | size-dep respiration | size-dep growth | light-dep division | using net growth <sup>[\[2\]](#netfootnote) | growth/respiration version <sup>[\[3\]](#versionfootnote) |
-| ------- | ---------- | ----------  | --- | --- | --- | --- | --- | -------------------------- |
-|`m1`     |            | free        |     |     |     |     |     | basic                      |
-|`m2`     | ✓          | monotonic   |     |     |     |     |     | basic                      |
-|`m3`     |            | monotonic   |     |     | ✓   |     |     | `gammaiv6`                 |
-|`m4`     | ✓          | monotonic   | ✓   |     |     |     |     | `respv1`                   |
-|`m5`     | ✓          | monotonic   | ✓   |     |     |     | ✓   | `respv2`                   |
-|`m6`     |            | monotonic   | ✓   | ✓   | ✓   |     | ✓   | `respiv6`                  |
-|`m7`     |            | monotonic   | ✓   | ✓   | ✓   |     |     | `respiv7`                  |
-|`m8`     |            | monotonic   | ✓   | ✓   | ✓   | ✓   | ✓   | `respiv6`                  |
-|`m9`     |            | monotonic   | ✓   | ✓   | ✓   | ✓   |     | `respiv7`                  |
-|`m10`    |            | monotonic   | ✓   |     |     | ✓   | ✓   | `respv2`                   |
-|`m11`    |            | monotonic   | ✓   |     | ✓   |     | ✓   | `resp_gammaiv6`            |
-|`m12`    | ✓          | monotonic   | ✓   |     | ✓   |     |     | `resp_gammaiv7`            |
-|`m13`    |            | monotonic   | ✓   |     | ✓   | ✓   | ✓   | `resp_gammaiv6`            |
-|`m14`    | ✓          | monotonic   | ✓   |     | ✓   | ✓   |     | `resp_gammaiv7`            |
-|`m3u`    |            | monotonic   |     |     | ✓   |     |     | `gammaiv8`                 |
-|`m6u`    |            | monotonic   | ✓   | ✓   | ✓   |     | ✓   | `respiv8`                  |
-|`m7u`    |            | monotonic   | ✓   | ✓   | ✓   |     |     | `respiv9`                  |
-|`m8u`    |            | monotonic   | ✓   | ✓   | ✓   | ✓   | ✓   | `respiv8`                  |
-|`m9u`    |            | monotonic   | ✓   | ✓   | ✓   | ✓   |     | `respiv9`                  |
-|`m11u`   |            | monotonic   | ✓   |     | ✓   |     | ✓   | `resp_gammaiv8`            |
-|`m12u`   |            | monotonic   | ✓   |     | ✓   |     |     | `resp_gammaiv9`            |
-|`m13u`   |            | monotonic   | ✓   |     | ✓   | ✓   | ✓   | `resp_gammaiv8`            |
-|`m14u`   |            | monotonic   | ✓   |     | ✓   | ✓   |     | `resp_gammaiv9`            |
+| name     | version | core model | old core model <sup>[\[1\]](#corefootnote) | `delta_max` | using respiration | size-dep respiration | size-dep growth | light-dep division | using net growth <sup>[\[2\]](#netfootnote) | using time-dep division | growth/respiration version <sup>[\[3\]](#versionfootnote) |
+| -------  | ------- | --- | --- | ----------  | --- | --- | --- | --- | --- | --- | -------------------------- |
+| `m_bfx`  |`m1`     |     |     | free        |     |     |     |     |     |     | basic                      |
+| `m_bmx`  |`m2`     | ✓   | ✓   | monotonic   |     |     |     |     |     |     | basic                      |
+| `m_emx`  |`m3`     |     |     | monotonic   |     |     | ✓   |     |     |     | `gammaiv6`                 |
+| `m_bmb`  |`m4`     | ✓   | ✓   | monotonic   | ✓   |     |     |     |     |     | `respv1`                   |
+| `m_bmb-` |`m5`     |     | ✓   | monotonic   | ✓   |     |     |     | ✓   |     | `respv2`                   |
+| `m_eme-` |`m6`     |     |     | monotonic   | ✓   | ✓   | ✓   |     | ✓   |     | `respiv6`                  |
+| `m_eme`  |`m7`     |     |     | monotonic   | ✓   | ✓   | ✓   |     |     |     | `respiv7`                  |
+| `m_ele-` |`m8`     |     |     | monotonic   | ✓   | ✓   | ✓   | ✓   | ✓   |     | `respiv6`                  |
+| `m_ele`  |`m9`     |     |     | monotonic   | ✓   | ✓   | ✓   | ✓   |     |     | `respiv7`                  |
+| `m_blb`  |`m10`    |     |     | monotonic   | ✓   |     |     | ✓   | ✓   |     | `respv2`                   |
+| `m_emb-` |`m11`    |     |     | monotonic   | ✓   |     | ✓   |     | ✓   |     | `resp_gammaiv6`            |
+| `m_emb`  |`m12`    |     | ✓   | monotonic   | ✓   |     | ✓   |     |     |     | `resp_gammaiv7`            |
+| `m_elb-` |`m13`    |     |     | monotonic   | ✓   |     | ✓   | ✓   | ✓   |     | `resp_gammaiv6`            |
+| `m_elb`  |`m14`    |     | ✓   | monotonic   | ✓   |     | ✓   | ✓   |     |     | `resp_gammaiv7`            |
+| `m_pmx`  |`m3u`    |     |     | monotonic   |     |     | ✓   |     |     |     | `gammaiv8`                 |
+| `m_pmp-` |`m6u`    |     |     | monotonic   | ✓   | ✓   | ✓   |     | ✓   |     | `respiv8`                  |
+| `m_pmp`  |`m7u`    |     |     | monotonic   | ✓   | ✓   | ✓   |     |     |     | `respiv9`                  |
+| `m_plp-` |`m8u`    |     |     | monotonic   | ✓   | ✓   | ✓   | ✓   | ✓   |     | `respiv8`                  |
+| `m_plp`  |`m9u`    |     |     | monotonic   | ✓   | ✓   | ✓   | ✓   |     |     | `respiv9`                  |
+| `m_pmb-` |`m11u`   |     |     | monotonic   | ✓   |     | ✓   |     | ✓   |     | `resp_gammaiv8`            |
+| `m_pmb`  |`m12u`   | ✓   |     | monotonic   | ✓   |     | ✓   |     |     |     | `resp_gammaiv9`            |
+| `m_plb-` |`m13u`   |     |     | monotonic   | ✓   |     | ✓   | ✓   | ✓   |     | `resp_gammaiv8`            |
+| `m_plb`  |`m14u`   |     |     | monotonic   | ✓   |     | ✓   | ✓   |     |     | `resp_gammaiv9`            |
+| `m_fmb`  |`m15`    | ✓   |     | monotonic   | ✓   |     | ✓   |     |     |     | free growth                |
+| `m_fmf`  |`m16`    | ✓   |     | monotonic   | ✓   | ✓   | ✓   |     |     |     | free growth, free division |
+| `m_btb`  |`m4s6`   | ✓   |     | monotonic   | ✓   |     |     |     |     | ✓   | `respv1`                   |
+| `m_ptb`  |`m12us6` | ✓   |     | monotonic   | ✓   |     | ✓   |     |     | ✓   | `resp_gammaiv9`            |
+| `m_ftb`  |`m15s6`  | ✓   |     | monotonic   | ✓   |     | ✓   |     |     | ✓   | free growth                |
+| `m_ftf`  |`m16s6`  | ✓   |     | monotonic   | ✓   | ✓   | ✓   |     |     | ✓   | free growth, free division |
 
 <a name="corefootnote">[1]</a> Based on discussion on 2020-09-01.
 
