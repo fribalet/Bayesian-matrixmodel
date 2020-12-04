@@ -110,8 +110,6 @@ if __name__ == '__main__':
         data_raw = data_raw.iloc[index,:]
         data['t_min'] = data['t_min'][index]
         data['t_min'] -= data['t_min'][0]
-        print(data['t_min'][1:]-data['t_min'][:-1])
-        
 
         if args.startday is None:
             args.startday = day[0]
