@@ -78,6 +78,7 @@ if __name__ == '__main__':
     parser.add_argument('--overwrite', action='store_true', help='Overwrite existing file if output file exists.')
     parser.add_argument('--startday', type=int, default=None, help='The first day to include in output file (default: include every day).')
     parser.add_argument('--endday', type=int, default=None, help='The last day to start include in output file (default: include every day).')
+    parser.add_argument('--offset_minutes', type=int, default=None, help='An offset in minutes applied to the time-slicing, when --startday or --endday are used.')
     
     args = parser.parse_args()
 
@@ -95,17 +96,21 @@ if __name__ == '__main__':
     
     filesuffix = ''
     if args.startday is not None or args.endday is not None:
+        index = np.ones_like(data['t_min'], dtype=bool)
+        if args.offset_minutes is not None:
+            data['t_min'] -= args.offset_minutes
+            index &= data['t_min'] >= 0
         day = (data['t_min']//1400 + 1).astype(int)
-        index = np.ones_like(day, dtype=bool)
 
         if args.startday is not None:
             index &= day >= args.startday
         if args.endday is not None:
             index &= day <= args.endday
-        
+
         data_raw = data_raw.iloc[index,:]
         data['t_min'] = data['t_min'][index]
         data['t_min'] -= data['t_min'][0]
+        print(data['t_min'][1:]-data['t_min'][:-1])
         
 
         if args.startday is None:
@@ -116,6 +121,8 @@ if __name__ == '__main__':
             filesuffix = '_day{}'.format(args.startday)
         else:
             filesuffix = '_day{}to{}'.format(args.startday, args.endday)
+        if args.offset_minutes is not None:
+            filesuffix += '_{}min-offset'.format(args.offset_minutes)
 
     data['data'] = data_raw.iloc[:,args.minbinindex:].values
     data['par'] = data_raw['PAR'].values
