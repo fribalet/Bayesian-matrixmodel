@@ -92,6 +92,7 @@ transformed parameters {
         real gamma;
         real gamma_sat;
         real a;
+        real a_max;
         real rho;
         real sizelim_gamma[m];
         real sizelim_rho[m];

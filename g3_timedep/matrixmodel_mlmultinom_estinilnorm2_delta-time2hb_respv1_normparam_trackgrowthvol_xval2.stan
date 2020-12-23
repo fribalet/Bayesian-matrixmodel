@@ -87,6 +87,7 @@ transformed parameters {
         real gamma_sat;
         real tau_t;
         real a;
+        real a_max;
         real rho;
         real x;
         int ito = 1;
