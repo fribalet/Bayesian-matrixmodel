@@ -78,6 +78,7 @@ transformed parameters {
     matrix<lower=0>[m,nt_obs] mod_obspos;
     real<lower=0> resp_size_loss[nt];   //record size loss due to respiration
     real<lower=0> growth_size_gain[nt]; //record size gain due to cell growth
+    real<lower=0> max_size_gain[nt];    // record maximum possible size gain
     real<lower=0> total_size[nt];       //record total size
     real<lower=0> cell_count[nt];       // record relative cell count for each time step 
     {
@@ -86,6 +87,7 @@ transformed parameters {
         vector[m] w_next;
         real delta_i = 0.0;
         real gamma;
+        real gamma_sat;
         real a;
         real rho;
         real x;
@@ -115,6 +117,7 @@ transformed parameters {
             w_next = rep_vector(0.0, m);
             resp_size_loss[it] = 0.0;
             growth_size_gain[it] = 0.0;
+            max_size_gain[it] = 0.0;
             total_size[it] = v_mid * w_curr;
             cell_count[it] = sum(w_curr);
             for (i in 1:m){ // size-class loop
@@ -125,8 +128,10 @@ transformed parameters {
                 // compute size-dependent gamma and rho
                 if (i < m){
                     gamma = dt_norm * gamma_max[i] * (1.0 - exp(-E[it]/E_star));
+                    gamma_sat = dt_norm * gamma_max[i];
                 } else {
                     gamma = 0.0; // value is not used
+                    gamma_sat = 0.0;  // value is not used
                 }
                 if (i > 1){
                     rho = dt_norm * rho_max[i-1];
@@ -150,18 +155,24 @@ transformed parameters {
                 if (i == 1){
                     //A[i+1,i] = gamma;
                     a = gamma;
+                    a_max = gamma_sat;
                     w_next[i+1] += a * w_curr[i];
                     growth_size_gain[it] += a * w_curr[i] * v_diff[i];
+                    max_size_gain[it] += a_max * w_curr[i] * v_diff[i];
                 } else if (i < j){
                     //A[i+1,i] = gamma * (1.0-rho);
                     a = gamma * (1.0-rho);
+                    a_max = gamma_sat * (1.0-rho);
                     w_next[i+1] += a * w_curr[i];
                     growth_size_gain[it] += a * w_curr[i] * v_diff[i];
+                    max_size_gain[it] += a_max * w_curr[i] * v_diff[i];
                 } else if (i < m){
                     //A[i+1,i] = gamma * (1.0-delta_i) * (1.0-rho);
                     a = gamma * (1.0-delta_i) * (1.0-rho);
+                    a_max = gamma_sat * (1.0-delta_i) * (1.0-rho);
                     w_next[i+1] += a * w_curr[i];
                     growth_size_gain[it] += a * w_curr[i] * v_diff[i];
+                    max_size_gain[it] += a_max * w_curr[i] * v_diff[i];
                 }
                 // fill (j-1)th superdiagonal (division)
                 if (i >= j){
