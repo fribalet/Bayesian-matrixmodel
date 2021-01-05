@@ -33,7 +33,7 @@ def read_csv(fname):
 
 import pandas
 
-data = read_csv('FSC_Array5_logtransform.csv')
+data = read_csv('FSC_Array5_logtransform_v2.csv')
 # new: set initial time to zero
 data['t_min'] -= data['t_min'][0]
 
