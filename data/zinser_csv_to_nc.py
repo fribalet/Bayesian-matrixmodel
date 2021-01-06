@@ -47,11 +47,11 @@ create_plots = True
 #
 
 #v_min = 0.03
-v_min = 14
+v_min = 16
 #m = 20
 #delta_v_inv = 5
-m = 25 # 26 or 59
-delta_v_inv = 7 # 6 or 7
+m = 27 # 26 or 59
+delta_v_inv = 8 # 6 or 7
 import sys
 if len(sys.argv) > 1:
     m = int(sys.argv[1])
