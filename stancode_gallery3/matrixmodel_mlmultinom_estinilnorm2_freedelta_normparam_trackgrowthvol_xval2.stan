@@ -7,7 +7,7 @@ data {
     int<lower=0> dt;        // delta t in minutes
     real<lower=0> E[nt];    // vector of incident radiation values
     real<lower=0> v_min;    // size in smallest size class in um^-3
-    int<lower=0> delta_v_inv;  // inverse of delta_v 
+    int<lower=0> delta_v_inv;  // inverse of delta_v
     // observations
     real<lower=0,upper=nt*dt>  t_obs[nt_obs]; // the time of each observation
     real<lower=0> obs[m,nt_obs]; // observations
@@ -24,11 +24,11 @@ transformed data {
     real<lower=0> v[m+1];   // vector of (minimum) sizes for each size class
     row_vector[m] v_mid;    // vector of sizes for each size class
     real<lower=0> v_diff[m-1];// vector of size-differences for first m-1 size classes
-    int<lower=0> t[nt];     // vector of times in minutes since start 
+    int<lower=0> t[nt];     // vector of times in minutes since start
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
 
-    j = 1 + delta_v_inv; 
+    j = 1 + delta_v_inv;
     delta_v = 1.0/delta_v_inv;
     dt_days = dt/1440.0;
     dt_norm = dt/(1440.0 * (2^delta_v - 1.0));
@@ -59,13 +59,13 @@ transformed data {
     }
 }
 parameters {
-    real<lower=0> delta_mu; 
-    real<lower=0> delta_sigma; 
-    real<lower=0,upper=1.0/dt_days> delta[m-j+1]; 
+    real<lower=0> delta_mu;
+    real<lower=0> delta_sigma;
+    real<lower=0,upper=1.0/dt_days> delta[m-j+1];
     real<lower=0,upper=1.0/dt_norm> gamma_max;
-    real<lower=0,upper=1.0/dt_norm> rho_max; 
-    real<lower=0, upper=5000> E_star; 
-    real<lower=1e-10> sigma; 
+    real<lower=0,upper=1.0/dt_norm> rho_max;
+    real<lower=0, upper=5000> E_star;
+    real<lower=1e-10> sigma;
     simplex[m] theta[nt_obs];
     simplex[m] w_ini;  // initial conditions
 }
@@ -74,12 +74,12 @@ transformed parameters {
     matrix<lower=0>[m,nt_obs] mod_obspos;
     real<lower=0> resp_size_loss[nt];   // record size loss due to respiration
     real<lower=0> growth_size_gain[nt]; // record size gain due to cell growth
-    real<lower=0> max_size_gain[nt];    // record maximum possible size gain 
+    real<lower=0> max_size_gain[nt];    // record maximum possible size gain
     real<lower=0> total_size[nt];       // record total size
-    real<lower=0> cell_count[nt];       // record relative cell count for each time step 
+    real<lower=0> cell_count[nt];       // record relative cell count for each time step
     {
         // helper variables
-        vector[m] w_curr; 
+        vector[m] w_curr;
         vector[m] w_next;
         real delta_i = 0.0;
         real gamma;
@@ -89,11 +89,11 @@ transformed parameters {
         real rho;
         real x;
         int ito = 1;
-      
+
         w_curr = w_ini;
 
         for (it in 1:nt){ // time-stepping loop
-            // record current solution 
+            // record current solution
             // here is another place where normalization could be performed
             if (it == it_obs[ito]){
                 mod_obspos[,ito] = w_curr;
@@ -104,7 +104,7 @@ transformed parameters {
                     ito = 1;
                 }
             }
-            
+
             // compute gamma
             gamma = gamma_max * dt_norm * (1.0 - exp(-E[it]/E_star));
             gamma_sat = gamma_max * dt_norm;
@@ -122,7 +122,7 @@ transformed parameters {
                 if (i >= j){
                     delta_i = delta[i-j+1] * dt_days;
                 }
-                
+
                 // fill superdiagonal (respiration)
                 if (i >= j){
                     //A[i-1,i] = rho * (1.0-delta_i);
@@ -197,9 +197,9 @@ transformed parameters {
 }
 model {
     vector[m] alpha;
-    
+
     // priors
-    
+
     delta_mu ~ normal(3.0, 1.0);
     delta_sigma ~ exponential(1.0);
     delta ~ normal(delta_mu, delta_sigma);

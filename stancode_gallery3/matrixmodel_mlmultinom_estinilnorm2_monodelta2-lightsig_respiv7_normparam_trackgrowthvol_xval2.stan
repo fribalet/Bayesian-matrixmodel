@@ -7,7 +7,7 @@ data {
     int<lower=0> dt;        // delta t in minutes
     real<lower=0> E[nt];    // vector of incident radiation values
     real<lower=0> v_min;    // size in smallest size class in um^-3
-    int<lower=0> delta_v_inv;  // inverse of delta_v 
+    int<lower=0> delta_v_inv;  // inverse of delta_v
     // observations
     real<lower=0,upper=nt*dt>  t_obs[nt_obs]; // the time of each observation
     real<lower=0> obs[m,nt_obs]; // observations
@@ -25,12 +25,12 @@ transformed data {
     real<lower=0> v[m+1];   // vector of (minimum) sizes for each size class
     row_vector[m] v_mid;    // vector of sizes for each size class
     real<lower=0> v_diff[m-1];// vector of size-differences for first m-1 size classes
-    int<lower=0> t[nt];     // vector of times in minutes since start 
+    int<lower=0> t[nt];     // vector of times in minutes since start
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
     real xi_max = 10.0;
 
-    j = 1 + delta_v_inv; 
+    j = 1 + delta_v_inv;
     delta_v = 1.0/delta_v_inv;
     dt_days = dt/1440.0;
     dt_norm = dt/(1440.0 * (2^delta_v - 1.0));
@@ -65,9 +65,9 @@ parameters {
     simplex[m-j+1] delta_incr;
     real<lower=0, upper=1.0/dt_days> delta_max;
     real<lower=0,upper=1.0/dt_norm> gamma_max;
-    real<lower=0,upper=1.0/dt_norm> rho_max; 
-    real<lower=0, upper=5000> E_star; 
-    real<lower=1e-10> sigma; 
+    real<lower=0,upper=1.0/dt_norm> rho_max;
+    real<lower=0, upper=5000> E_star;
+    real<lower=1e-10> sigma;
     real<lower=-xi_max,upper=xi_max> xi;
     real<lower=-xi_max,upper=xi_max> xir;
     real<lower=0> delta_lightthresh;
@@ -83,10 +83,10 @@ transformed parameters {
     real<lower=0> growth_size_gain[nt]; //record size gain due to cell growth
     real<lower=0> max_size_gain[nt];    // record maximum possible size gain
     real<lower=0> total_size[nt];       //record total size
-    real<lower=0> cell_count[nt];       // record relative cell count for each time step 
+    real<lower=0> cell_count[nt];       // record relative cell count for each time step
     {
         // helper variables
-        vector[m] w_curr; 
+        vector[m] w_curr;
         vector[m] w_next;
         real delta_i = 0.0;
         real gamma;
@@ -98,13 +98,13 @@ transformed parameters {
         real sizelim_rho[m];
         real x;
         int ito = 1;
-      
+
         // populate delta using delta_incr
         delta[1] = delta_incr[1] * delta_max;
         for (i in 1:m-j){
             delta[i+1] = delta[i] + delta_incr[i+1] * delta_max;
         }
-        
+
         // pre-compute size-limitations
         if (xi > 0){
             for (i in 1:m){ // size-class loop
@@ -128,7 +128,7 @@ transformed parameters {
         w_curr = w_ini;
 
         for (it in 1:nt){ // time-stepping loop
-            // record current solution 
+            // record current solution
             // here is another place where normalization could be performed
             if (it == it_obs[ito]){
                 mod_obspos[,ito] = w_curr;
@@ -139,7 +139,7 @@ transformed parameters {
                     ito = 1;
                 }
             }
-            
+
             w_next = rep_vector(0.0, m);
             resp_size_loss[it] = 0.0;
             growth_size_gain[it] = 0.0;
@@ -160,7 +160,7 @@ transformed parameters {
                 gamma_sat = dt_norm * sizelim_gamma[i] * gamma_max;
                 // compute rho_i
                 rho = dt_norm * sizelim_rho[i] * rho_max;
-                
+
                 // fill superdiagonal (respiration)
                 if (i >= j){
                     //A[i-1,i] = rho * (1.0-delta_i);
@@ -195,7 +195,7 @@ transformed parameters {
                     w_next[i+1] += a * w_curr[i];
                     growth_size_gain[it] += a * w_curr[i] * v_diff[i];
                     max_size_gain[it] += a_max * w_curr[i] * v_diff[i];
-                    
+
                 }
                 // fill (j-1)th superdiagonal (division)
                 if (i >= j){
@@ -236,9 +236,9 @@ transformed parameters {
 }
 model {
     vector[m] alpha;
-    
+
     // priors
-    
+
     gamma_max ~ normal(10.0, 10.0) T[0,1.0/dt_norm];
     rho_max ~ normal(3.0, 10.0) T[0, 1.0/dt_norm];
     E_star ~ normal(1000.0,1000.0) T[0,];
