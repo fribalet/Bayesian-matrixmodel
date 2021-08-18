@@ -85,7 +85,7 @@ transformed data {
     int<lower=1, upper=nt> it_obs[nt_obs]; // the time index of each observation
     int n_test = sum(i_test);
     int p_spline = 3;       // degree of spline, hardcoded for now
-    int nknots = 12;        // number of knots for spline, hardcoded for now
+    int nknots = 6;         // number of knots for spline, hardcoded for now
     int nt_1day = 1440/dt;
     matrix[nt_1day,nknots+p_spline-1] bsplines;
 
